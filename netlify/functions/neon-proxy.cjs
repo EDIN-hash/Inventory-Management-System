@@ -52,7 +52,13 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const sql = neon(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL);
+  const dbUrl = process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL;
+  
+  if (!dbUrl) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Database not configured' }) };
+  }
+  
+  const sql = neon(dbUrl);
   const authHeader = event.headers.authorization;
   const token = authHeader?.replace('Bearer ', '');
 
@@ -72,11 +78,12 @@ exports.handler = async function(event, context) {
             [username, hashedPassword]
         );
         
-        if (result.rows.length === 0) {
+        const rows = result?.rows;
+        if (!rows || rows.length === 0) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
         }
         
-        const user = result.rows[0];
+        const user = rows[0];
         const authToken = createToken(user.username, user.role);
         
         return {
@@ -106,11 +113,12 @@ exports.handler = async function(event, context) {
             [username]
         );
         
-        if (result.rows.length === 0) {
+        const rows = result?.rows;
+        if (!rows || rows.length === 0) {
             return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create user' }) };
         }
         
-        const user = result.rows[0];
+        const user = rows[0];
         const authToken = createToken(user.username, user.role);
         
         return {
