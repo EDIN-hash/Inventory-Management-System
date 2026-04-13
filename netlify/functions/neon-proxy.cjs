@@ -1,8 +1,12 @@
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'inventorypwaprodjvjukn4s';
+const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRY_HOURS = 24;
+
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+}
 
 function createToken(username, role) {
     const payload = {
