@@ -1,7 +1,7 @@
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'inventory-pwa-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'inventorypwaprodjvjukn4s';
 const TOKEN_EXPIRY_HOURS = 24;
 
 function createToken(username, role) {
