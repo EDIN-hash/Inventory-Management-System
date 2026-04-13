@@ -79,21 +79,26 @@ exports.handler = async function(event, context) {
     if (action === 'register') {
       try {
         const hashedPassword = hashPassword(password);
+        console.log('Register:', username, 'role:', role || 'spectator', 'hash:', hashedPassword.substring(0, 20));
         
         const result = await sql.query(
             'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, role',
             [username, hashedPassword, role || 'spectator']
         );
         
+        console.log('Insert result:', JSON.stringify(result));
+        
         const rows = result?.rows;
-        if (!rows || rows.length === 0) return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create user' }) };
+        if (!rows || rows.length === 0) return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create user', result: JSON.stringify(result) }) };
         
         const user = rows[0];
+        console.log('User created:', user);
         const authToken = createToken(user.username, user.role);
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
+        console.log('Register error:', error.message, error.code);
         if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
-        return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code, detail: error.toString() }) };
       }
     }
     
