@@ -3,8 +3,12 @@ const crypto = require('crypto');
 const APP_SECRET = process.env.APP_SECRET;
 const TOKEN_EXPIRY_HOURS = 24;
 
-if (!APP_SECRET) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'APP_SECRET environment variable is required' }) };
+// Check secret at runtime inside handler
+function checkSecret() {
+    if (!APP_SECRET) {
+        return { statusCode: 500, body: JSON.stringify({ error: 'APP_SECRET not configured' }) };
+    }
+    return null;
 }
 
 function createToken(username, role) {
@@ -38,6 +42,9 @@ exports.handler = async function(event, context) {
     return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } };
   }
 
+  const secretError = checkSecret();
+  if (secretError) return secretError;
+  
   const dbUrl = process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL;
   if (!dbUrl) return { statusCode: 500, body: JSON.stringify({ error: 'Database not configured' }) };
   
