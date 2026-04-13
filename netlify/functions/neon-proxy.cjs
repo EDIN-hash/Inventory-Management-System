@@ -11,13 +11,6 @@ function createToken(username, role) {
 }
 
 function verifyToken(token) {
-    const payload = { username, role, exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) };
-    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const signature = crypto.createHmac('sha256', APP_SECRET).update(encoded).digest('hex');
-    return `${encoded}.${signature}`;
-}
-
-function verifyToken(token) {
     try {
         const [encoded, signature] = token.split('.');
         const expectedSig = crypto.createHmac('sha256', APP_SECRET).update(encoded).digest('hex');
@@ -64,16 +57,18 @@ exports.handler = async function(event, context) {
     if (action === 'login') {
       try {
         const hashedPassword = hashPassword(password);
-        const result = await sql.query('SELECT username, role FROM users WHERE username = $1 AND password = $2', [username, hashedPassword]);
+        const result = await sql.query('SELECT username, role, password FROM users WHERE username = $1', [username]);
         
         const rows = result?.rows;
         if (!rows || rows.length === 0) {
-            // Debug: return more info
-            const allUsers = await sql.query('SELECT username, password FROM users LIMIT 5');
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { inputHash: hashedPassword, sampleUsers: allUsers.rows } }) };
+            return { statusCode: 401, body: JSON.stringify({ error: 'User not found', username }) };
         }
         
         const user = rows[0];
+        if (user.password !== hashedPassword) {
+            return { statusCode: 401, body: JSON.stringify({ error: 'Wrong password', dbHash: user.password, inputHash: hashedPassword }) };
+        }
+        
         const authToken = createToken(user.username, user.role);
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
@@ -85,7 +80,6 @@ exports.handler = async function(event, context) {
       try {
         const hashedPassword = hashPassword(password);
         
-        // Use RETURNING to get user data in same query
         const result = await sql.query(
             'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, role',
             [username, hashedPassword, role || 'spectator']
@@ -98,7 +92,7 @@ exports.handler = async function(event, context) {
         const authToken = createToken(user.username, user.role);
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
-        if (error.message.includes('duplicate key') || error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
+        if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
         return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
       }
     }
