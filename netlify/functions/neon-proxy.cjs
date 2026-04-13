@@ -1,11 +1,11 @@
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const APP_SECRET = process.env.APP_SECRET;
 const TOKEN_EXPIRY_HOURS = 24;
 
-if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is not set');
+if (!APP_SECRET) {
+    throw new Error('APP_SECRET environment variable is not set');
 }
 
 function createToken(username, role) {
@@ -15,14 +15,14 @@ function createToken(username, role) {
         exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
     };
     const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
-    const signature = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
+    const signature = crypto.createHmac('sha256', APP_SECRET).update(encoded).digest('hex');
     return `${encoded}.${signature}`;
 }
 
 function verifyToken(token) {
     try {
         const [encoded, signature] = token.split('.');
-        const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
+        const expectedSig = crypto.createHmac('sha256', APP_SECRET).update(encoded).digest('hex');
         
         if (signature !== expectedSig) {
             return null;
@@ -41,7 +41,7 @@ function verifyToken(token) {
 }
 
 function hashPassword(password) {
-    return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
+    return crypto.createHmac('sha256', APP_SECRET).update(password).digest('hex');
 }
 
 exports.handler = async function(event, context) {
