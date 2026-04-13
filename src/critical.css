@@ -1,0 +1,219 @@
+/* CRITICAL CSS - Inline in <head> for fastest FCP */
+/* Contains only styles needed for above-the-fold content */
+
+/* Base */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #1a1b26;
+    color: #c0caf5;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#root {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+/* Header */
+.header-section {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: rgba(26, 27, 38, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    contain: layout style;
+}
+
+.main-title {
+    color: #7aa2f7 !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 5px rgba(122, 162, 247, 0.3);
+}
+
+/* Grid */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+    padding: 0 1rem;
+    width: 100%;
+    flex: 1;
+    contain: layout style;
+}
+
+/* Card */
+.card-premium {
+    background: linear-gradient(145deg, #1e1e2e, #252538);
+    border: 1px solid rgba(76, 100, 241, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    padding: 1.5rem;
+    contain: layout style;
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #c0caf5;
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.badge-modern {
+    background: rgba(255, 255, 255, 0.05);
+    color: #c0caf5;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Tabs */
+.tabs-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.tab-modern {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.tab-modern.active {
+    background: linear-gradient(135deg, #7aa2f7, #4d5bce);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn {
+    transition: all 0.2s ease-in-out;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    min-width: 100px;
+}
+
+.btn-primary {
+    background-color: #4d5bce !important;
+    border-color: #4d5bce !important;
+    color: white !important;
+}
+
+.btn-success {
+    background-color: #7aa2f7 !important;
+    border-color: #7aa2f7 !important;
+    color: white !important;
+}
+
+/* Inputs */
+.input {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #4d5bce;
+    border-radius: 6px;
+    background: #2d2e3a;
+    color: #c0caf5;
+    font-size: 0.875rem;
+}
+
+/* Modal */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-box {
+    position: relative;
+    background: #1e1e2e;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    color: #c0caf5;
+}
+
+/* Loading */
+.loading-pulse {
+    width: 60px;
+    height: 60px;
+    border: 3px solid rgba(122, 162, 247, 0.15);
+    border-top-color: #7aa2f7;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Critical animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(26, 27, 38, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #2d2e3a, #3a3b4a);
+    border-radius: 10px;
+}
+
+/* Font optimization */
+@font-face {
+    font-family: 'Inter';
+    font-display: swap;
+    src: local('Inter');
+}
