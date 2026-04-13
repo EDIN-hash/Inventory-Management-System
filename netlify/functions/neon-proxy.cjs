@@ -30,6 +30,19 @@ function hashPassword(password) {
 }
 
 exports.handler = async function(event, context) {
+  // Debug endpoint - returns APP_SECRET status
+  if (event.httpMethod === 'GET') {
+    return { 
+      statusCode: 200, 
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, 
+      body: JSON.stringify({ 
+        APP_SECRET_set: !!APP_SECRET,
+        APP_SECRET_length: APP_SECRET?.length,
+        dbUrl_set: !!(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL)
+      }) 
+    };
+  }
+  
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } };
   }
@@ -54,17 +67,34 @@ exports.handler = async function(event, context) {
     const body = JSON.parse(event.body);
     const { action, query, params, username, password, role, token: registerToken } = body;
 
+    // Debug endpoint
+    if (action === 'debug') {
+        return { statusCode: 200, body: JSON.stringify({ 
+            APP_SECRET_set: !!APP_SECRET,
+            APP_SECRET_length: APP_SECRET?.length,
+            APP_SECRET_value: APP_SECRET
+        }) };
+    }
+
     if (action === 'login') {
       try {
         const hashedPassword = hashPassword(password);
+        console.log('Login - username:', username, 'hash:', hashedPassword);
+        
         const result = await sql.query('SELECT username, role, password FROM users WHERE username = $1', [username]);
         
         const rows = result?.rows;
+        console.log('Query result:', JSON.stringify(result));
+        
         if (!rows || rows.length === 0) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
         }
         
         const user = rows[0];
+        console.log('User from DB:', user.username, 'password:', user.password);
+        console.log('Input hash:', hashedPassword);
+        console.log('Match:', user.password === hashedPassword);
+        
         if (user.password !== hashedPassword) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
         }
