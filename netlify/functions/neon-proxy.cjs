@@ -1,10 +1,10 @@
 const crypto = require('crypto');
 
-let APP_SECRET = process.env.APP_SECRET || process.env.JWT_SECRET;
+const APP_SECRET = process.env.APP_SECRET;
 const TOKEN_EXPIRY_HOURS = 24;
 
 if (!APP_SECRET) {
-    APP_SECRET = 'inventorypwaprodjvjukn4s';
+    return { statusCode: 500, body: JSON.stringify({ error: 'APP_SECRET environment variable is required' }) };
 }
 
 function createToken(username, role) {

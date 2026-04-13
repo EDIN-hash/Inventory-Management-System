@@ -5,6 +5,9 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "APP_SECRET,TOKEN_KEY,SIGNING_SECRET"
+
 [dev]
   command = "vite"
   port = 8888
