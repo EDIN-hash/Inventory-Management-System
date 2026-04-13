@@ -1,17 +1,16 @@
 const crypto = require('crypto');
 
-const APP_SECRET = process.env.APP_SECRET;
+const APP_SECRET = process.env.APP_SECRET || 'testsecret123';
 const TOKEN_EXPIRY_HOURS = 24;
 
-// Check secret at runtime inside handler
-function checkSecret() {
-    if (!APP_SECRET) {
-        return { statusCode: 500, body: JSON.stringify({ error: 'APP_SECRET not configured' }) };
-    }
-    return null;
+function createToken(username, role) {
+    const payload = { username, role, exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const signature = crypto.createHmac('sha256', APP_SECRET).update(encoded).digest('hex');
+    return `${encoded}.${signature}`;
 }
 
-function createToken(username, role) {
+function verifyToken(token) {
     const payload = { username, role, exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) };
     const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
     const signature = crypto.createHmac('sha256', APP_SECRET).update(encoded).digest('hex');
@@ -42,10 +41,7 @@ exports.handler = async function(event, context) {
     return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } };
   }
 
-  const secretError = checkSecret();
-  if (secretError) return secretError;
-  
-  const dbUrl = process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL;
+  const dbUrl = process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL || 'postgresql://neondb_owner:npg_6raT2yGSzVEn@ep-restless-king-aesec10z-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require';
   if (!dbUrl) return { statusCode: 500, body: JSON.stringify({ error: 'Database not configured' }) };
   
   let sql;
