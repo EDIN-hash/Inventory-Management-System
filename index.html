@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https:; font-src 'self' https://cdn.jsdnelivr.net https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' http://localhost:3001 http://localhost:3002 http://localhost:3003 http://localhost:3004 http://localhost:3005 http://localhost:3006 https://fonts.googleapis.com; frame-src 'self'">
+    <title>Inventory PWA</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://ipwabeta.netlify.app">
+    <link rel="dns-prefetch" href="https://ipwabeta.netlify.app">
+    
+    <style>
+        body{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;color:#fff;margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh}
+        .loading{text-align:center}.loading-spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}@keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+    
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    
+    <link rel="manifest" href="/manifest.webmanifest">
+</head>
+<body>
+    <div id="root">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading...</div>
+        </div>
+    </div>
+    <script nonce="<%= nonce %>">
+        window.CSP_NONCE = '<%= nonce %>';
+    </script>
+    <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>
