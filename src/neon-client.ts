@@ -90,9 +90,9 @@ function removeUser(): void {
 
 // Function to execute SQL queries to Neon via Netlify function
 async function neonQuery<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {
-    const functionUrl = import.meta.env.DEV 
+    const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
         ? 'http://localhost:8888/.netlify/functions/neon-proxy'
-        : '/.netlify/functions/neon-proxy';
+        : '/.netlify/functions/neon-proxy');
 
     const token = getToken();
 

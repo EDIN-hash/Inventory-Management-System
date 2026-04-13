@@ -47,7 +47,7 @@ export default function App() {
     const [editingItem, setEditingItem] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState("NM");
     const [darkMode, setDarkMode] = useState(false);
-    const [SERVER_URL, setServerUrl] = useState(import.meta.env.VITE_SERVER_URL || "http://localhost:3001");
+    const [SERVER_URL, setServerUrl] = useState(import.meta.env.VITE_SERVER_URL || "/.netlify/functions/neon-proxy");
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'na-stanie', 'wyjechalo'
     
@@ -89,9 +89,9 @@ export default function App() {
         
         const warmup = async () => {
             try {
-                const functionUrl = import.meta.env.DEV 
+                const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
                     ? 'http://localhost:8888/.netlify/functions/neon-proxy'
-                    : '/.netlify/functions/neon-proxy';
+                    : '/.netlify/functions/neon-proxy');
                 await fetch(functionUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: 'SELECT 1', params: [] }) });
             } catch (e) {}
         };

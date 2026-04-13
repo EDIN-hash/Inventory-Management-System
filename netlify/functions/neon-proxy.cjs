@@ -1,11 +1,10 @@
-import { neon } from '@neondatabase/serverless';
-import crypto from 'crypto';
+const { neon } = require('@neondatabase/serverless');
+const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'inventory-pwa-secret-key-change-in-production';
 const TOKEN_EXPIRY_HOURS = 24;
 
-// Simple JWT-like token functions
-function createToken(username: string, role: string): string {
+function createToken(username, role) {
     const payload = {
         username,
         role,
@@ -16,7 +15,7 @@ function createToken(username: string, role: string): string {
     return `${encoded}.${signature}`;
 }
 
-function verifyToken(token: string): { username: string; role: string } | null {
+function verifyToken(token) {
     try {
         const [encoded, signature] = token.split('.');
         const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
@@ -37,12 +36,11 @@ function verifyToken(token: string): { username: string; role: string } | null {
     }
 }
 
-// Simple password hash (in production, use bcrypt!)
-function hashPassword(password: string): string {
+function hashPassword(password) {
     return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
 }
 
-export async function handler(event, context) {
+exports.handler = async function(event, context) {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -54,11 +52,10 @@ export async function handler(event, context) {
     };
   }
 
-  const sql = neon();
+  const sql = neon(process.env.DATABASE_URL);
   const authHeader = event.headers.authorization;
   const token = authHeader?.replace('Bearer ', '');
 
-  // Auth endpoints (no token required)
   if (event.httpMethod === 'POST') {
     if (!event.body) {
       return { statusCode: 400, body: JSON.stringify({ error: 'No body' }) };
@@ -67,7 +64,6 @@ export async function handler(event, context) {
     const body = JSON.parse(event.body);
     const { action, query, params, username, password, role, token: registerToken } = body;
 
-    // Login action
     if (action === 'login') {
       try {
         const hashedPassword = hashPassword(password);
@@ -97,7 +93,6 @@ export async function handler(event, context) {
       }
     }
     
-    // Register action
     if (action === 'register') {
       try {
         const hashedPassword = hashPassword(password);
@@ -126,7 +121,6 @@ export async function handler(event, context) {
       }
     }
     
-    // Verify token action
     if (action === 'verify') {
       if (!registerToken) {
         return { statusCode: 400, body: JSON.stringify({ error: 'No token' }) };
@@ -144,7 +138,6 @@ export async function handler(event, context) {
       };
     }
 
-    // For other actions, require authentication
     if (token) {
         const user = verifyToken(token);
         if (!user) {
@@ -152,7 +145,6 @@ export async function handler(event, context) {
         }
     }
 
-    // Execute SQL query
     if (query && query.trim() !== '') {
       try {
         let result;
@@ -174,4 +166,4 @@ export async function handler(event, context) {
   }
 
   return { statusCode: 200, body: JSON.stringify({ ok: true }) };
-}
+};

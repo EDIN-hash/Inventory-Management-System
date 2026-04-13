@@ -29,8 +29,7 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 # Environment variables for production
-[context.production.environment]
-  NETLIFY_DATABASE_URL = "postgresql://neondb_owner:npg_6raT2yGSzVEn@ep-restless-king-aesec10z-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require"
+# Set DATABASE_URL in Netlify dashboard as a secret
 
 # For local development, create a .env file with DATABASE_URL
 # Example: DATABASE_URL=postgresql://username:password@localhost:5432/dbname
