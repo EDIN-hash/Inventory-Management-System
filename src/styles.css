@@ -368,13 +368,6 @@ body {
     font-size: 16px;
     font-weight: 600;
 }
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-}
 
 /* Category Badges */
 .category-badge {
@@ -682,6 +675,13 @@ body {
 .card-premium > div:first-child {
     max-height: none !important;
     overflow: visible !important;
+}
+
+/* SVG icons should not stretch */
+.card-premium svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    flex-shrink: 0;
 }
 
 /* Dimension display */
