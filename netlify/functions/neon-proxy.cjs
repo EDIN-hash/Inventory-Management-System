@@ -1,11 +1,7 @@
 const crypto = require('crypto');
 
-const APP_SECRET = process.env.APP_SECRET;
+const APP_SECRET = process.env.APP_SECRET || process.env.JWT_SECRET || 'inventorypwaprodjvjukn4s';
 const TOKEN_EXPIRY_HOURS = 24;
-
-if (!APP_SECRET) {
-    throw new Error('APP_SECRET environment variable is not set');
-}
 
 function createToken(username, role) {
     const payload = {
@@ -113,15 +109,21 @@ exports.handler = async function(event, context) {
     if (action === 'register') {
       try {
         const hashedPassword = hashPassword(password);
+        console.log('Registering user:', username, 'with password hash:', hashedPassword.substring(0, 20) + '...');
+        
         await sql.query(
             'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
             [username, hashedPassword, role || 'spectator']
         );
         
+        console.log('User inserted, fetching back...');
+        
         const result = await sql.query(
             'SELECT username, role FROM users WHERE username = $1',
             [username]
         );
+        
+        console.log('Query result:', JSON.stringify(result));
         
         const rows = result?.rows;
         if (!rows || rows.length === 0) {
@@ -129,6 +131,7 @@ exports.handler = async function(event, context) {
         }
         
         const user = rows[0];
+        console.log('User created:', user);
         const authToken = createToken(user.username, user.role);
         
         return {

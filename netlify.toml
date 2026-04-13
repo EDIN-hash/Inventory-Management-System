@@ -5,9 +5,6 @@
   publish = "dist"
   functions = "netlify/functions"
 
-[build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "APP_SECRET"
-
 [dev]
   command = "vite"
   port = 8888
@@ -32,8 +29,7 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 # Environment variables for production
-[context.production.environment]
-  DATABASE_URL = ""
+# Set DATABASE_URL in Netlify dashboard as a secret
 
 # For local development, create a .env file with DATABASE_URL
 # Example: DATABASE_URL=postgresql://username:password@localhost:5432/dbname
