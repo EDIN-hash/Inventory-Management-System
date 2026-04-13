@@ -88,9 +88,13 @@ exports.handler = async function(event, context) {
     if (action === 'register') {
       try {
         const hashedPassword = hashPassword(password);
-        await sql.query('INSERT INTO users (username, password, role) VALUES ($1, $2, $3)', [username, hashedPassword, role || 'spectator']);
         
-        const result = await sql.query('SELECT username, role FROM users WHERE username = $1', [username]);
+        // Use RETURNING to get user data in same query
+        const result = await sql.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, role',
+            [username, hashedPassword, role || 'spectator']
+        );
+        
         const rows = result?.rows;
         if (!rows || rows.length === 0) return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create user' }) };
         
@@ -98,8 +102,8 @@ exports.handler = async function(event, context) {
         const authToken = createToken(user.username, user.role);
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
-        if (error.message.includes('duplicate key')) return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
-        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+        if (error.message.includes('duplicate key') || error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
       }
     }
     
