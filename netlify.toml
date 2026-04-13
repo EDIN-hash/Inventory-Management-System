@@ -32,7 +32,8 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 # Environment variables for production
-# Set DATABASE_URL in Netlify dashboard as a secret
+[context.production.environment]
+  DATABASE_URL = ""
 
 # For local development, create a .env file with DATABASE_URL
 # Example: DATABASE_URL=postgresql://username:password@localhost:5432/dbname

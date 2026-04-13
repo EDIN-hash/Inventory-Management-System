@@ -1,4 +1,3 @@
-const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 
 const APP_SECRET = process.env.APP_SECRET;
@@ -62,7 +61,14 @@ exports.handler = async function(event, context) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Database not configured' }) };
   }
   
-  const sql = neon(dbUrl);
+  let sql;
+  try {
+    const { neon } = require('@neondatabase/serverless');
+    sql = neon(dbUrl);
+  } catch (error) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create SQL client: ' + error.message }) };
+  }
+  
   const authHeader = event.headers.authorization;
   const token = authHeader?.replace('Bearer ', '');
 
