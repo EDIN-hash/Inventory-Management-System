@@ -56,21 +56,29 @@ exports.handler = async function(event, context) {
 
     if (action === 'login') {
       try {
-        const hashedPassword = hashPassword(password);
+        // For debugging: accept any password, just check username exists
         const result = await sql.query('SELECT username, role, password FROM users WHERE username = $1', [username]);
         
         const rows = result?.rows;
         if (!rows || rows.length === 0) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'User not found', username }) };
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
         }
         
         const user = rows[0];
-        if (user.password !== hashedPassword) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Wrong password', dbHash: user.password, inputHash: hashedPassword }) };
-        }
         
-        const authToken = createToken(user.username, user.role);
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
+        // Debug: return what hash we generated vs what's in DB
+        const testHash1 = crypto.createHmac('sha256', 'testsecret123').update(password).digest('hex');
+        const testHash2 = crypto.createHmac('sha256', 'inventorypwaprodjvjukn4s').update(password).digest('hex');
+        const testHash3 = crypto.createHmac('sha256', APP_SECRET).update(password).digest('hex');
+        
+        return { statusCode: 401, body: JSON.stringify({ 
+            error: 'Debug info',
+            dbHash: user.password,
+            testHash1: testHash1,
+            testHash2: testHash2,
+            testHash3: testHash3,
+            APP_SECRET: APP_SECRET ? 'set' : 'not set'
+        }) };
       } catch (error) {
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
       }
@@ -79,9 +87,7 @@ exports.handler = async function(event, context) {
     if (action === 'register') {
       try {
         const hashedPassword = hashPassword(password);
-        console.log('Register:', username);
         
-        // Create table if not exists
         await sql.query(`
           CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
@@ -91,24 +97,23 @@ exports.handler = async function(event, context) {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
-        console.log('Table checked/created');
         
-        const result = await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, role',
+        // Neon doesn't support RETURNING well, do separate query
+        await sql.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
             [username, hashedPassword, role || 'spectator']
         );
         
-        console.log('Insert result:', JSON.stringify(result));
-        
+        // Fetch the user we just created
+        const result = await sql.query('SELECT username, role FROM users WHERE username = $1', [username]);
         const rows = result?.rows;
-        if (!rows || rows.length === 0) return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create user' }) };
+        
+        if (!rows || rows.length === 0) return { statusCode: 500, body: JSON.stringify({ error: 'User created but not found' }) };
         
         const user = rows[0];
-        console.log('User created:', user);
         const authToken = createToken(user.username, user.role);
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
-        console.log('Register error:', error.message, error.code);
         if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
         return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
       }
