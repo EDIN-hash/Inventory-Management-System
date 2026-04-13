@@ -52,7 +52,7 @@ exports.handler = async function(event, context) {
     };
   }
 
-  const sql = neon(process.env.DATABASE_URL);
+  const sql = neon(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL);
   const authHeader = event.headers.authorization;
   const token = authHeader?.replace('Bearer ', '');
 
@@ -96,10 +96,19 @@ exports.handler = async function(event, context) {
     if (action === 'register') {
       try {
         const hashedPassword = hashPassword(password);
-        const result = await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, role',
+        await sql.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
             [username, hashedPassword, role || 'spectator']
         );
+        
+        const result = await sql.query(
+            'SELECT username, role FROM users WHERE username = $1',
+            [username]
+        );
+        
+        if (result.rows.length === 0) {
+            return { statusCode: 500, body: JSON.stringify({ error: 'Failed to create user' }) };
+        }
         
         const user = result.rows[0];
         const authToken = createToken(user.username, user.role);
