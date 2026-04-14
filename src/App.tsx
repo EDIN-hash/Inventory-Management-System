@@ -86,18 +86,45 @@ export default function App() {
     useEffect(() => {
         console.log('Auth state:', { authLoading, isAuthenticated, isError: error });
         if (!authLoading && isAuthenticated && auth0User) {
+            console.log('=== ALL USER KEYS ===', Object.keys(auth0User));
             console.log('=== AUTH0 USER FULL ===', JSON.stringify(auth0User, null, 2));
-            // Get role ONLY from Auth0 namespace claim (from Action)
-            let role = (auth0User['https://inventory.com/role'] as string);
-            if (!role) {
-                console.log('No role from Auth0! Checking app_metadata...');
-                role = (auth0User as any).app_metadata?.role;
+            
+            // Ищем роль во ВСЕХ возможных полях
+            let role = null;
+            
+            // 1. Namespace claim (из Action)
+            if (auth0User['https://inventory.com/role']) {
+                role = auth0User['https://inventory.com/role'];
+                console.log('Role from namespace:', role);
             }
-            // Fallback only if NO role at all
-            if (!role) {
-                console.log('WARNING: No role found in Auth0! Default to spectator');
-                role = 'spectator';
+            // 2. app_metadata (directly)
+            else if ((auth0User as any).app_metadata?.role) {
+                role = (auth0User as any).app_metadata.role;
+                console.log('Role from app_metadata:', role);
             }
+            // 3. role (top level)
+            else if ((auth0User as any).role) {
+                role = (auth0User as any).role;
+                console.log('Role from top-level:', role);
+            }
+            // 4. Пробуем через sub - это ID юзера
+            if (!role) {
+                console.log('Searching in all values...');
+                const allValues = Object.values(auth0User as any);
+                for (const v of allValues) {
+                    if (v === 'admin' || v === 'moder' || v === 'spectator') {
+                        role = v;
+                        console.log('Found role in unexpected place:', v);
+                        break;
+                    }
+                }
+            }
+            
+            if (!role) {
+                console.log('=== NO ROLE FOUND! Using default: moderator ===');
+                role = 'moder'; // Временно для теста!
+            }
+            
             setCurrentUser({ username: auth0User.name || auth0User.email || 'User', role });
             console.log('=== FINAL ROLE:', role, '===');
         } else if (!authLoading && !isAuthenticated) {
