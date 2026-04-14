@@ -220,7 +220,9 @@ const NeonClient = {
             
             console.log('=== REGISTER SUCCESS ===');
             console.log('Stored password (from debug):', data.debug?.stored_password_hash);
-            console.log('Verify rows:', data.debug?.verify_rows);
+            console.log('Input hashed:', data.debug?.input_hashed);
+            console.log('Match:', data.debug?.stored_and_input_match);
+            console.log('Stored role:', data.debug?.role);
             
             if (data.token) {
                 setToken(data.token);

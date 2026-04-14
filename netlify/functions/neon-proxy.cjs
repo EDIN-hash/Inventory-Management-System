@@ -76,55 +76,50 @@ exports.handler = async function(event, context) {
         console.log('=== LOGIN QUERY ===');
         console.log('username:', username.trim());
         
-        const result = await sql.query('SELECT username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
+        // Try lowercase search
+        const result = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
         
         console.log('=== QUERY RESULT ===');
         console.log('result:', JSON.stringify(result));
+        console.log('rows:', JSON.stringify(result?.rows));
+        console.log('rows length:', result?.rows?.length);
         
         const rows = result?.rows;
         
         if (!rows || rows.length === 0) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, searched: username.trim() } }) };
+            // Try without LOWER
+            const allUsers = await sql.query('SELECT id, username, role, password FROM users');
+            console.log('=== ALL USERS IN DB ===');
+            console.log('total users:', allUsers?.rows?.length);
+            console.log('users:', JSON.stringify(allUsers?.rows));
+            
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, searched: username.trim(), all_users: allUsers?.rows?.length } }) };
         }
         
         const user = rows[0];
         console.log('=== USER OBJECT ===');
         console.log('user:', JSON.stringify(user));
         console.log('keys:', Object.keys(user));
-        console.log('user[0]:', user[0]); // Neon might return array-like
-        console.log('username from user.username:', user.username);
-        console.log('username from user["username"]:', user['username']);
-        
-        // Try to get values regardless of key case
-        const userData = {};
-        Object.keys(user).forEach(k => userData[k.toLowerCase()] = user[k]);
-        console.log('normalized userData:', JSON.stringify(userData));
-        
-        const actualUsername = userData.username || user.username || user['username'];
-        const actualPassword = userData.password || user.password || user['password'];
-        const actualRole = userData.role || user.role || user['role'];
         
         const hashedInputPassword = hashPassword(password);
         
         const debugInfo = {
           input_username: username.trim(),
-          actual_username: actualUsername,
-          actual_password_exists: !!actualPassword,
-          actual_password_length: actualPassword?.length,
-          input_password_length: password?.length,
+          db_username: user.username,
+          db_password: user.password,
+          input_password: password,
           hashed_input: hashedInputPassword,
-          actual_password: actualPassword,
-          match: actualPassword === hashedInputPassword
+          match: user.password === hashedInputPassword
         };
         
         console.log('=== LOGIN SERVER DEBUG ===', JSON.stringify(debugInfo));
         
-        if (actualPassword !== hashedInputPassword) {
+        if (user.password !== hashedInputPassword) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: debugInfo }) };
         }
         
-        const authToken = createToken(actualUsername, actualRole);
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: actualUsername, role: actualRole }) };
+        const authToken = createToken(user.username, user.role);
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
         console.log('=== LOGIN ERROR ===', error);
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
@@ -153,26 +148,38 @@ exports.handler = async function(event, context) {
           )
         `);
         
-        await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *',
+        // Insert and check if successful
+        const insertResult = await sql.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role',
             [username.trim(), hashedPassword, role || 'spectator']
         );
         
+        console.log('=== REGISTER INSERT RESULT ===');
+        console.log('insertResult:', JSON.stringify(insertResult));
+        console.log('insertResult.rows:', JSON.stringify(insertResult?.rows));
+        
         // Query back what was stored
-        const verifyResult = await sql.query('SELECT * FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
+        const verifyResult = await sql.query('SELECT id, username, password, role FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
         console.log('=== REGISTER VERIFY ===');
-        console.log('stored user:', JSON.stringify(verifyResult.rows));
+        console.log('stored user rows:', verifyResult?.rows?.length);
+        console.log('stored user:', JSON.stringify(verifyResult?.rows));
+        
+        const storedUser = verifyResult?.rows?.[0];
         
         const debugInfo = {
           username: username.trim(),
-          stored_password_hash: hashedPassword,
-          role: role || 'spectator',
-          verify_rows: verifyResult.rows
+          stored_password_hash: storedUser?.password,
+          input_hashed: hashedPassword,
+          stored_and_input_match: storedUser?.password === hashedPassword,
+          role: storedUser?.role
         };
         
-        const authToken = createToken(username.trim(), role || 'spectator');
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: role || 'spectator', debug: debugInfo }) };
+        console.log('=== REGISTER DEBUG INFO ===', JSON.stringify(debugInfo));
+        
+        const authToken = createToken(username.trim(), storedUser?.role || role || 'spectator');
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: storedUser?.role || role || 'spectator', debug: debugInfo }) };
       } catch (error) {
+        console.log('=== REGISTER ERROR ===', error);
         if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
         return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
       }
