@@ -1,61 +1,15 @@
-export interface Item {
-    name: string;
-    quantity?: string;
-    ilosc?: number;
-    description?: string;
-    photo_url?: string;
-    photo_url2?: string;
-    category?: string;
-    wysokosc?: number;
-    szerokosc?: number;
-    glebokosc?: number;
-    data_wyjazdu?: string | null;
-    stan?: number | boolean;
-    linknadysk?: string;
-    updatedAt?: string;
-    updatedBy?: string;
-    deviceId?: string;
-    stoisko?: string;
-}
-
-export interface User {
-    username: string;
-    role: 'spectator' | 'moder' | 'admin';
-}
-
-export interface AuthResponse {
-    token: string;
-    username: string;
-    role: string;
-}
-
-export interface HistoryEntry {
-    id?: number;
-    item_name: string;
-    action: string;
-    field_name: string;
-    old_value: string;
-    new_value: string;
-    changed_by: string;
-    device_id: string;
-    timestamp?: string;
-}
-
-export interface DeviceNickname {
-    username: string;
-    device_id: string;
-    nickname: string;
-}
-
-export interface UserDevice {
-    changed_by: string;
-    device_id: string;
-}
+import type {
+    Item,
+    User,
+    AuthResponse,
+    HistoryEntry,
+    DeviceNickname,
+    UserDevice,
+} from '../types';
 
 const TOKEN_KEY = 'inventory_auth_token';
 const USER_KEY = 'inventory_user';
 
-// Helper to manage token storage
 function setToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
 }
@@ -88,7 +42,6 @@ function removeUser(): void {
     localStorage.removeItem(USER_KEY);
 }
 
-// Function to execute SQL queries to Neon via Netlify function
 async function neonQuery<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {
     const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
         ? 'http://localhost:8888/.netlify/functions/neon-proxy'
@@ -123,11 +76,9 @@ async function neonQuery<T = unknown>(sql: string, params: unknown[] = []): Prom
     }
 }
 
-// Functions for working with data
-const NeonClient = {
+export const api = {
     query: neonQuery,
-    
-// Login user with JWT
+
     async loginUser(username: string, password: string): Promise<User | null> {
         const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
             ? 'http://localhost:8888/.netlify/functions/neon-proxy'
@@ -168,7 +119,6 @@ const NeonClient = {
         }
     },
 
-    // Register user with JWT
     async registerUser(username: string, password: string, role: string = 'spectator'): Promise<User | null> {
         const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
             ? 'http://localhost:8888/.netlify/functions/neon-proxy'
@@ -208,7 +158,6 @@ const NeonClient = {
         }
     },
 
-    // Verify token and get user
     async verifyToken(): Promise<User | null> {
         const token = getToken();
         if (!token) return null;
@@ -250,18 +199,15 @@ const NeonClient = {
         }
     },
 
-    // Logout
     logout(): void {
         removeToken();
         removeUser();
     },
 
-    // Get stored user
     getStoredUser(): User | null {
         return getUser();
     },
 
-    // Get all items
     async getItems(category: string | null = null): Promise<Item[]> {
         let query = 'SELECT * FROM items';
         if (category) {
@@ -271,7 +217,6 @@ const NeonClient = {
         return neonQuery<Item>(query);
     },
 
-    // Add item
     async addItem(item: Item): Promise<Item[]> {
         const query = `
             INSERT INTO items (
@@ -306,7 +251,6 @@ const NeonClient = {
         return neonQuery<Item>(query, params);
     },
 
-    // Update item
     async updateItem(name: string, item: Item): Promise<Item[]> {
         const query = `
             UPDATE items SET
@@ -352,13 +296,11 @@ const NeonClient = {
         return neonQuery<Item>(query, params);
     },
 
-    // Delete item
     async deleteItem(name: string): Promise<Item[]> {
         const query = 'DELETE FROM items WHERE name = $1 RETURNING *';
         return neonQuery<Item>(query, [name]);
     },
 
-    // Get next available ID for category
     async getNextAvailableId(category: string, tvSize: string = '55'): Promise<string> {
         if (category === 'Telewizory') {
             const query = 'SELECT name FROM items WHERE category = $1 AND name LIKE $2 ORDER BY name';
@@ -397,7 +339,7 @@ const NeonClient = {
         
         const usedNumbers = new Set<number>();
         result.forEach(item => {
-            const match = item.name.match(new RegExp(`${prefix}(\\d+)`));
+            const match = item.name.match(new RegExp(`${prefix}(\d+)`));
             if (match) {
                 usedNumbers.add(parseInt(match[1], 10));
             }
@@ -411,7 +353,6 @@ const NeonClient = {
         return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
     },
 
-    // Add history entry
     async addHistoryEntry(entry: Partial<HistoryEntry>): Promise<HistoryEntry[] | null> {
         const query = `
             INSERT INTO history (item_name, action, field_name, old_value, new_value, changed_by, device_id, timestamp) 
@@ -438,7 +379,6 @@ const NeonClient = {
         }
     },
 
-    // Get history
     async getHistory(itemName: string | null = null): Promise<HistoryEntry[]> {
         try {
             if (itemName && itemName.trim()) {
@@ -457,7 +397,6 @@ const NeonClient = {
         }
     },
 
-    // Clear history
     async clearHistory(): Promise<HistoryEntry[]> {
         const query = 'DELETE FROM history RETURNING *';
         try {
@@ -469,7 +408,6 @@ const NeonClient = {
         }
     },
 
-    // Get all unique users and their devices
     async getUserDevices(): Promise<UserDevice[]> {
         const query = `SELECT DISTINCT changed_by, device_id FROM history ORDER BY changed_by, device_id`;
         try {
@@ -481,7 +419,6 @@ const NeonClient = {
         }
     },
 
-    // Get all devices for specific user
     async getUserDevicesByUser(username: string): Promise<{ device_id: string }[]> {
         const query = `SELECT DISTINCT device_id FROM history WHERE changed_by = $1`;
         try {
@@ -493,7 +430,6 @@ const NeonClient = {
         }
     },
 
-    // Get all nicknames
     async getDeviceNicknames(): Promise<DeviceNickname[]> {
         const query = `SELECT username, device_id, nickname FROM device_nicknames`;
         try {
@@ -505,7 +441,6 @@ const NeonClient = {
         }
     },
 
-    // Save nickname for device
     async saveDeviceNickname(username: string, deviceId: string, nickname: string): Promise<DeviceNickname[] | null> {
         const query = `
             INSERT INTO device_nicknames (username, device_id, nickname) 
@@ -522,7 +457,6 @@ const NeonClient = {
         }
     },
 
-    // Delete nickname
     async deleteDeviceNickname(username: string, deviceId: string): Promise<DeviceNickname[] | null> {
         const query = `DELETE FROM device_nicknames WHERE username = $1 AND device_id = $2`;
         try {
@@ -532,7 +466,7 @@ const NeonClient = {
             console.warn('Delete nickname error:', err.message);
             return null;
         }
-    }
+    },
 };
 
-export default NeonClient;
+export default api;

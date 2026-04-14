@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
-import Card from "./Card";
-import HistoryCard from "./HistoryCard";
 import Modal from "react-modal";
 import "./styles.css";
-import NeonClient from "./neon-client";
+import api from "./services/api";
+import { generateDeviceId, getDeviceBaseId } from "./utils/device";
+import type { Item, User, SortConfig, StatusFilter, HistorySort } from "./types";
+import { CATEGORIES } from "./types";
+import Card from "./components/Card";
+import HistoryCard from "./components/HistoryCard";
 import UserDevicesSettings from "./UserDevicesSettings";
-import { generateDeviceId, getDeviceBaseId, getDeviceDisplayId, getDeviceName, setDeviceName } from "./device-utils";
-import type { Item } from "./neon-client";
 
 // Настройка Modal до определения компонента
 Modal.setAppElement("#root");
 
-const categories = ["Telewizory", "Lodowki", "Ekspresy", "Krzesla", "NM", "LADY", "Historia", "Ustawienia"];
+const categories = CATEGORIES;
 
 const defaultModalData = {
     name: "",
@@ -102,14 +103,14 @@ export default function App() {
     useEffect(() => {
         const verifyAuth = async () => {
             try {
-                const user = await NeonClient.verifyToken();
+                const user = await api.verifyToken();
                 if (user) {
                     setCurrentUser(user);
                     console.log('Auto-login successful for user:', user.username);
                 }
             } catch (error) {
                 console.error('Failed to verify token:', error);
-                NeonClient.logout();
+                api.logout();
             }
         };
         verifyAuth();
@@ -133,10 +134,10 @@ export default function App() {
         setIsLoading(true);
         try {
             if (selectedCategory === 'Historia') {
-                const history = await NeonClient.getHistory();
+                const history = await api.getHistory();
                 setItems(history);
             } else {
-                const items = await NeonClient.getItems(selectedCategory || null);
+                const items = await api.getItems(selectedCategory || null);
                 setItems(items);
             }
         } catch (err) {
@@ -154,7 +155,7 @@ export default function App() {
     // Log category change
     useEffect(() => {
         if (currentUser && selectedCategory) {
-            NeonClient.addHistoryEntry({
+            api.addHistoryEntry({
                 item_name: selectedCategory,
                 action: 'view_category',
                 field_name: 'category_opened',
@@ -169,7 +170,7 @@ export default function App() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const user = await NeonClient.loginUser(username, password);
+            const user = await api.loginUser(username, password);
             if (user) {
                 setCurrentUser(user);
                 setUsername('');
@@ -188,7 +189,7 @@ export default function App() {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await NeonClient.registerUser(registerUsername, registerPassword, registerRole);
+            await api.registerUser(registerUsername, registerPassword, registerRole);
             alert("Registration successful. You may log in.");
             setIsRegisterModalOpen(false);
             setRegisterUsername("");
@@ -205,14 +206,14 @@ export default function App() {
     };
 
     const handleLogout = () => {
-        NeonClient.logout();
+        api.logout();
         setCurrentUser(null);
         console.log('User logged out');
     };
 
     const handleGetNextId = async () => {
         try {
-            const nextId = await NeonClient.getNextAvailableId(selectedCategoryForId, tvSize);
+            const nextId = await api.getNextAvailableId(selectedCategoryForId, tvSize);
             setGeneratedId(nextId);
         } catch (err) {
             console.error("Get next ID error:", err);
@@ -289,14 +290,14 @@ export default function App() {
         };
         try {
             if (editingItem) {
-                await NeonClient.updateItem(editingItem.name, itemData);
+                await api.updateItem(editingItem.name, itemData);
             } else {
-                await NeonClient.addItem(itemData);
+                await api.addItem(itemData);
             }
             // Запись в историю - не блокирует сохранение при ошибке
             try {
                 if (editingItem) {
-                    await NeonClient.addHistoryEntry({
+                    await api.addHistoryEntry({
                         item_name: modalData.name,
                         action: 'edit',
                         field_name: 'all',
@@ -306,7 +307,7 @@ export default function App() {
                         device_id: currentDeviceId
                     });
                 } else {
-                    await NeonClient.addHistoryEntry({
+                    await api.addHistoryEntry({
                         item_name: modalData.name,
                         action: 'add',
                         field_name: 'new_item',
@@ -333,9 +334,9 @@ export default function App() {
         const currentUsername = currentUser?.username || "Unknown";
         const currentDeviceId = getDeviceBaseId();
         try {
-            await NeonClient.deleteItem(itemName);
+            await api.deleteItem(itemName);
             try {
-                await NeonClient.addHistoryEntry({
+                await api.addHistoryEntry({
                     item_name: itemName,
                     action: 'delete',
                     field_name: 'all',

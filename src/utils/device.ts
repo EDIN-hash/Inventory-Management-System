@@ -1,5 +1,3 @@
-// Utility functions for device identification and tracking
-
 const DEVICE_ID_KEY = 'inventory_device_id';
 const DEVICE_NAME_KEY = 'inventory_device_name';
 
@@ -11,10 +9,6 @@ export interface ImageOptimizeOptions {
     crop?: string;
 }
 
-/**
- * Generate a stable device fingerprint based on hardware characteristics
- * Only uses stable data that doesn't change between sessions
- */
 function generateFingerprint(): string {
     try {
         const data = {
@@ -41,10 +35,6 @@ function generateFingerprint(): string {
     }
 }
 
-/**
- * Get or generate a stable device ID
- * Saved in localStorage so it persists across sessions
- */
 export function generateDeviceId(): string {
     try {
         let deviceId = localStorage.getItem(DEVICE_ID_KEY);
@@ -60,9 +50,6 @@ export function generateDeviceId(): string {
     }
 }
 
-/**
- * Get or set device nickname
- */
 export function getDeviceName(): string {
     return localStorage.getItem(DEVICE_NAME_KEY) || '';
 }
@@ -71,16 +58,10 @@ export function setDeviceName(name: string): void {
     localStorage.setItem(DEVICE_NAME_KEY, name);
 }
 
-/**
- * Get base device ID without nickname
- */
 export function getDeviceBaseId(): string {
     return generateDeviceId();
 }
 
-/**
- * Get device nickname by username and device ID
- */
 export function getDeviceNickname(_username: string, deviceId: string): string | null {
     try {
         const nicknames = JSON.parse(localStorage.getItem('device_nicknames') || '{}');
@@ -90,10 +71,6 @@ export function getDeviceNickname(_username: string, deviceId: string): string |
     }
 }
 
-/**
- * Get combined device identifier for history
- * Format: "Nickname (Browser/OS)" or "DEV-ID (Browser/OS)"
- */
 export function getDeviceDisplayId(): string {
     const deviceId = generateDeviceId();
     const deviceName = getDeviceName();
@@ -118,9 +95,6 @@ export function getDeviceDisplayId(): string {
     return `${deviceId} (${browser}/${os})`;
 }
 
-/**
- * Reset device ID - generates new one
- */
 export function resetDeviceId(): string {
     try {
         const newId = generateFingerprint();
@@ -131,14 +105,10 @@ export function resetDeviceId(): string {
     }
 }
 
-/**
- * Get a more detailed device information string for display
- */
 export function getDeviceId(): string {
     try {
         const info: string[] = [];
         
-        // Browser info
         if (navigator.userAgent) {
             if (navigator.userAgent.includes('Chrome')) info.push('Chrome');
             else if (navigator.userAgent.includes('Firefox')) info.push('Firefox');
@@ -147,7 +117,6 @@ export function getDeviceId(): string {
             else if (navigator.userAgent.includes('OPR')) info.push('Opera');
         }
         
-        // Platform info
         if (navigator.platform) {
             if (navigator.platform.includes('Win')) info.push('Windows');
             else if (navigator.platform.includes('Mac')) info.push('Mac');
@@ -156,7 +125,6 @@ export function getDeviceId(): string {
             else if (navigator.platform.includes('iPhone') || navigator.platform.includes('iPad')) info.push('iOS');
         }
         
-        // Screen size
         if (window.screen) {
             info.push(`${window.screen.width}x${window.screen.height}`);
         }
@@ -169,9 +137,6 @@ export function getDeviceId(): string {
     }
 }
 
-/**
- * Get optimized Cloudinary URL with transformations
- */
 export function getOptimizedImageUrl(url: string, options: ImageOptimizeOptions = {}): string {
     if (!url || !url.includes('cloudinary.com')) {
         return url;
@@ -200,9 +165,6 @@ export function getOptimizedImageUrl(url: string, options: ImageOptimizeOptions 
     return `${parts[0]}/upload/${transformations.join(',')}/${parts[1]}`;
 }
 
-/**
- * Get thumbnail URL for list view
- */
 export function getThumbnailUrl(url: string): string {
     if (!url) return url;
     
@@ -217,9 +179,6 @@ export function getThumbnailUrl(url: string): string {
     return getOptimizedImageUrl(url, { width: 800, quality: 'auto', crop: 'fit' });
 }
 
-/**
- * Get full-size optimized URL for modal/lightbox
- */
 export function getFullImageUrl(url: string): string {
     if (!url) return url;
     

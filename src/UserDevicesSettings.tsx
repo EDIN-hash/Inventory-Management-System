@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import NeonClient from "./neon-client";
+import api from "./services/api";
 
 export default function UserDevicesSettings() {
     const [users, setUsers] = useState([]);
@@ -16,8 +16,8 @@ export default function UserDevicesSettings() {
     const loadData = async () => {
         try {
             const [usersData, nicknamesData] = await Promise.all([
-                NeonClient.getUserDevices(),
-                NeonClient.getDeviceNicknames()
+                api.getUserDevices(),
+                api.getDeviceNicknames()
             ]);
             
             const uniqueUsers = [...new Set(usersData.map(d => d.changed_by).filter(Boolean))];
@@ -44,7 +44,7 @@ export default function UserDevicesSettings() {
 
     const loadDevicesForUser = async (username) => {
         try {
-            const data = await NeonClient.getUserDevicesByUser(username);
+            const data = await api.getUserDevicesByUser(username);
             setUserDevices(data.map(d => d.device_id));
         } catch (error) {
             console.error('Error loading devices:', error);
@@ -55,7 +55,7 @@ export default function UserDevicesSettings() {
     const handleSaveNickname = async (deviceId, nickname) => {
         setSaving(true);
         try {
-            await NeonClient.saveDeviceNickname(selectedUser, deviceId, nickname);
+            await api.saveDeviceNickname(selectedUser, deviceId, nickname);
             setNicknames(prev => ({ ...prev, [deviceId]: nickname }));
         } catch (error) {
             console.error('Error saving nickname:', error);
@@ -66,7 +66,7 @@ export default function UserDevicesSettings() {
     const handleDeleteNickname = async (deviceId) => {
         setSaving(true);
         try {
-            await NeonClient.deleteDeviceNickname(selectedUser, deviceId);
+            await api.deleteDeviceNickname(selectedUser, deviceId);
             setNicknames(prev => {
                 const updated = { ...prev };
                 delete updated[deviceId];

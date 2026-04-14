@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
-import { getOptimizedImageUrl, getThumbnailUrl, getFullImageUrl } from "./device-utils";
+import { getOptimizedImageUrl, getThumbnailUrl, getFullImageUrl } from "../utils/device";
 
 const MAX_IMAGE_WIDTH = 1920;
 const MAX_IMAGE_HEIGHT = 1080;
 
-// CSS стили для модального окна
 const modalStyles = `
 .photo-modal-overlay {
     position: fixed;
@@ -114,7 +113,6 @@ const modalStyles = `
 }
 `;
 
-// Вставляем стили в head при загрузке компонента
 if (typeof document !== 'undefined' && !document.getElementById('photo-modal-styles')) {
     const styleElement = document.createElement('style');
     styleElement.id = 'photo-modal-styles';
@@ -148,7 +146,6 @@ function optimizeImageUrl(url, isFullSize = false) {
     return url;
 }
 
-// LazyImage component with IntersectionObserver
 const LazyImage = memo(function LazyImage({ src, alt, className, style, onClick }) {
     const [isVisible, setIsVisible] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -200,7 +197,6 @@ export default function Card({ item, editItem, deleteItem, role }) {
     const cardRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
     
-    // Lazy load card content
     useEffect(() => {
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -345,7 +341,6 @@ export default function Card({ item, editItem, deleteItem, role }) {
                     </div>
                 )}
 
-                {/* Stoisko section for specific categories */}
                 {['Lodowki', 'Telewizory', 'Ekspresy', 'LADY', 'Krzesla'].includes(item.category) && item.stoisko && (
                     <div className="stoisko-section">
                         <div className="flex items-center gap-2">

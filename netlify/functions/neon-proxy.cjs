@@ -25,22 +25,117 @@ function verifyToken(token) {
     }
 }
 
-function hashPassword(password) {
-    return crypto.createHmac('sha256', APP_SECRET).update(password).digest('hex');
+// SIMPLE PASSWORD - no hashing for debugging
+function simpleHash(password) {
+    return password;
 }
 
 exports.handler = async function(event, context) {
-  // Debug endpoint - returns APP_SECRET status
-  if (event.httpMethod === 'GET') {
-    return { 
-      statusCode: 200, 
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, 
-      body: JSON.stringify({ 
-        APP_SECRET_set: !!APP_SECRET,
-        APP_SECRET_length: APP_SECRET?.length,
-        dbUrl_set: !!(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL)
-      }) 
-    };
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } };
+  }
+
+  const dbUrl = process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL || 'postgresql://neondb_owner:npg_6raT2yGSzVEn@ep-restless-king-aesec10z-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require';
+  if (!dbUrl) return { statusCode: 500, body: JSON.stringify({ error: 'Database not configured' }) };
+  
+  let sql;
+  try {
+    const { neon } = require('@neondatabase/serverless');
+    sql = neon(dbUrl);
+  } catch (error) {
+    return { statusCode: 500, body: JSON.stringify({ error: 'SQL client error: ' + error.message }) };
+  }
+  
+  const authHeader = event.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (event.httpMethod === 'POST') {
+    if (!event.body) return { statusCode: 400, body: JSON.stringify({ error: 'No body' }) };
+    
+    const body = JSON.parse(event.body);
+    const { action, query, params, username, password, role, token: registerToken } = body;
+
+    if (action === 'login') {
+      try {
+        // Get all users
+        const allUsers = await sql.query('SELECT * FROM users');
+        
+        // Find user with exact match (no hashing!)
+        const user = allUsers.rows.find(u => u.username === username && u.password === password);
+        
+        if (!user) {
+            return { 
+                statusCode: 401, 
+                body: JSON.stringify({ 
+                    error: 'Invalid credentials', 
+                    debug: { 
+                        users_in_db: allUsers.rows.map(u => ({ username: u.username, role: u.role })),
+                        you_sent: { username, password }
+                    } 
+                }) 
+            };
+        }
+        
+        const authToken = createToken(user.username, user.role);
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
+      } catch (error) {
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+      }
+    }
+    
+    if (action === 'register') {
+      try {
+        // Create table if not exists
+        await sql.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(50) DEFAULT 'spectator',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Insert user (NO HASHING - store password as-is for debugging)
+        const result = await sql.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *',
+            [username, password, role || 'spectator']
+        );
+        
+        const user = result.rows[0];
+        
+        const authToken = createToken(user.username, user.role);
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
+      } catch (error) {
+        if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
+      }
+    }
+    
+    if (action === 'verify') {
+      if (!registerToken) return { statusCode: 400, body: JSON.stringify({ error: 'No token' }) };
+      const user = verifyToken(registerToken);
+      if (!user) return { statusCode: 401, body: JSON.stringify({ error: 'Invalid token' }) };
+      return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ username: user.username, role: user.role }) };
+    }
+
+    if (token) {
+        const user = verifyToken(token);
+        if (!user) return { statusCode: 401, body: JSON.stringify({ error: 'Invalid or expired token' }) };
+    }
+
+    if (query && query.trim() !== '') {
+      try {
+        const result = params && params.length > 0 ? await sql.query(query, params) : await sql.query(query, []);
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(result) };
+      } catch (error) {
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+      }
+    }
+  }
+
+  return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+};
   }
   
   if (event.httpMethod === 'OPTIONS') {
