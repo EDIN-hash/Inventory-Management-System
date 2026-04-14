@@ -80,49 +80,80 @@ exports.handler = async function(event, context) {
         }
         
         const searchName = username.trim();
-        console.log('=== LOGIN QUERY ===');
-        console.log('searching for:', searchName);
         
         // Use simple exact match first
         const result = await sql.query('SELECT id, username, role, password FROM users WHERE username = $1', [searchName]);
         
-        console.log('=== QUERY RESULT ===');
-        console.log('rows count:', result?.rows?.length);
-        console.log('rows:', JSON.stringify(result?.rows));
-        
-        const rows = result?.rows;
+        let rows = result?.rows;
         
         if (!rows || rows.length === 0) {
             // Try case-insensitive
             const result2 = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [searchName]);
-            console.log('=== CASE INSENSITIVE RESULT ===');
-            console.log('rows count:', result2?.rows?.length);
             
             if (!result2?.rows?.length) {
-                // List all users
-                const allUsers = await sql.query('SELECT id, username, role FROM users');
-                console.log('=== ALL USERS ===');
-                console.log('total:', allUsers?.rows?.length);
-                
-                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, searched: searchName, all_users: allUsers?.rows?.length } }) };
+                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true } }) };
             }
             
-            const user = result2.rows[0];
-            console.log('=== FOUND USER (case insensitive) ===');
-            console.log('user:', JSON.stringify(user));
+            rows = result2.rows;
+        }
+        
+        const user = rows[0];
+        
+        const hashedInputPassword = hashPassword(password);
+        
+        if (user.password !== hashedInputPassword) {
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
+        }
+        
+        const authToken = createToken(user.username, user.role);
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
+      } catch (error) {
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+      }
+    }
+    
+    if (action === 'register') {
+      try {
+        if (!username?.trim() || !password) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required' }) };
+        }
+        
+        const hashedPassword = hashPassword(password);
+        
+        await sql.query(`
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(50) DEFAULT 'spectator',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        const insertResult = await sql.query(
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, password, role',
+            [username.trim(), hashedPassword, role || 'spectator']
+        );
+        
+        const storedUser = insertResult?.rows?.[0];
+        
+        const debugInfo = {
+          username: username.trim(),
+          stored_password_hash: storedUser?.password,
+          input_hashed: hashedPassword,
+          stored_and_input_match: storedUser?.password === hashedPassword,
+          role: storedUser?.role
+        };
+        
+        const authToken = createToken(username.trim(), storedUser?.role || role || 'spectator');
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: storedUser?.role || role || 'spectator', debug: debugInfo }) };
+      } catch (error) {
+        if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
+      }
+    }
             
-            const hashedInputPassword = hashPassword(password);
-            console.log('=== PASSWORD CHECK ===');
-            console.log('input hash:', hashedInputPassword);
-            console.log('db password:', user.password);
-            console.log('match:', user.password === hashedInputPassword);
-            
-            if (user.password !== hashedInputPassword) {
-                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { password_mismatch: true } }) };
-            }
-            
-            const authToken = createToken(user.username, user.role);
-            return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
+            rows = result2.rows;
         }
         
         const user = rows[0];
@@ -171,7 +202,7 @@ exports.handler = async function(event, context) {
         
         // Insert and check if successful
         const insertResult = await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role',
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, password, role',
             [username.trim(), hashedPassword, role || 'spectator']
         );
         
@@ -179,13 +210,19 @@ exports.handler = async function(event, context) {
         console.log('insertResult:', JSON.stringify(insertResult));
         console.log('insertResult.rows:', JSON.stringify(insertResult?.rows));
         
-        // Query back what was stored
-        const verifyResult = await sql.query('SELECT id, username, password, role FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
-        console.log('=== REGISTER VERIFY ===');
-        console.log('stored user rows:', verifyResult?.rows?.length);
-        console.log('stored user:', JSON.stringify(verifyResult?.rows));
+        // Use the inserted user directly from RETURNING
+        const storedUser = insertResult?.rows?.[0];
         
-        const storedUser = verifyResult?.rows?.[0];
+        console.log('=== STORED USER FROM INSERT ===');
+        console.log('storedUser:', JSON.stringify(storedUser));
+        
+        if (!storedUser) {
+            // Fallback: try to query back
+            const verifyResult = await sql.query('SELECT id, username, password, role FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
+            console.log('=== REGISTER VERIFY (FALLBACK) ===');
+            console.log('stored user:', JSON.stringify(verifyResult?.rows));
+            console.log('rows count:', verifyResult?.rows?.length);
+        }
         
         const debugInfo = {
           username: username.trim(),
