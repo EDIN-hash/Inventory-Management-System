@@ -58,8 +58,8 @@ export default function RoleManager() {
     };
 
     return (
-        <div className="card bg-gray-800 p-3 md:p-4 text-white w-full max-w-4xl mx-auto">
-            <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">Role Management</h2>
+        <div className="card bg-gray-800 p-4 text-white w-full max-w-2xl">
+            <h2 className="text-xl font-bold mb-4">Role Management</h2>
             
             <form onSubmit={handleAddUser} className="flex flex-col sm:flex-row gap-2 mb-4">
                 <input
@@ -88,7 +88,7 @@ export default function RoleManager() {
                 <div className="text-center py-4">Loading...</div>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="table table-xs md:table-sm w-full">
+                    <table className="table w-full">
                         <thead>
                             <tr>
                                 <th>Email</th>

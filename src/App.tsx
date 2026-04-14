@@ -260,43 +260,42 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen bg-[#1a1b26] p-2 sm:p-4 md:p-6">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 md:mb-4 gap-2">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center md:text-left w-full md:w-auto shrink-0">Inventory</h1>
+        <div className="min-h-screen bg-[#1a1b26] p-3">
+            <header className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+                <h1 className="text-3xl font-bold text-white">Inventory Management</h1>
                 {authLoading ? (
-                    <span className="text-white text-sm">Loading...</span>
+                    <span className="text-white">Loading...</span>
                 ) : !currentUser ? (
-                    <div className="flex flex-wrap gap-2 justify-center w-full">
-                        <button onClick={() => loginWithRedirect()} className="btn btn-primary btn-md">Login</button>
-                        <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary btn-md">Register</button>
+                    <div className="flex gap-2">
+                        <button onClick={() => loginWithRedirect()} className="btn btn-primary">Login</button>
+                        <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary">Register</button>
                     </div>
                 ) : (
-                    <div className="flex flex-wrap gap-2 items-center justify-center md:justify-end w-full min-w-0">
+                    <div className="flex gap-2 items-center flex-wrap">
                         <input
                             type="text"
                             placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="input input-bordered bg-gray-700 text-white input-md min-w-[120px] md:min-w-[180px]"
+                            className="input input-bordered bg-gray-700 text-white"
                         />
                         {currentUser.role === "admin" && selectedCategory !== 'Historia' && (
-                            <button onClick={() => openItemModal()} className="btn btn-success btn-sm">Add</button>
+                            <button onClick={() => openItemModal()} className="btn btn-success">Add</button>
                         )}
-                        <button onClick={() => auth0Logout({ logoutParams: { returnTo: window.location.origin } })} className="btn btn-error btn-sm">Logout</button>
-                        <span className="text-white text-xs md:text-sm whitespace-nowrap truncate max-w-[100px] md:max-w-none">{currentUser.username.split('@')[0]}</span>
-                        <span className="badge badge-sm badge-primary">{currentUser.role}</span>
+                        <button onClick={() => auth0Logout({ logoutParams: { returnTo: window.location.origin } })} className="btn btn-error">Logout</button>
+                        <span className="text-white">{currentUser.username.split('@')[0]} ({currentUser.role})</span>
                     </div>
                 )}
             </header>
 
             {showUpdateBanner && (
-                <div className="bg-blue-600 text-white px-4 py-2 text-center">
+                <div className="bg-blue-600 text-white px-4 py-2 text-center mb-2">
                     <span>Dostępna nowa wersja aplikacji! </span>
                     <button onClick={handleUpdateApp} className="bg-white text-blue-600 px-4 py-1 rounded font-bold ml-2">Aktualizuj</button>
                 </div>
             )}
 
-            <div className="tabs pb-2 flex flex-nowrap md:flex-wrap gap-1 md:gap-2 justify-start md:justify-center mb-3 md:mb-4 overflow-x-auto px-1">
+            <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4">
                 {categories.filter(cat => {
                     if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
                     if (cat === 'Ustawienia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
@@ -304,7 +303,7 @@ export default function App() {
                 }).map((category) => (
                     <button
                         key={category}
-                        className={`btn btn-sm md:btn-md ${selectedCategory === category ? 'btn-active' : ''} text-xs md:text-sm`}
+                        className={`btn ${selectedCategory === category ? 'btn-active' : ''}`}
                         onClick={() => setSelectedCategory(category)}
                     >
                         {category}
