@@ -159,10 +159,15 @@ const NeonClient = {
                 
                 let debugMsg = '';
                 if (errorData.debug) {
-                    debugMsg = `\n\nDebug:\n- db_username: ${errorData.debug.db_username}\n- db_password: ${errorData.debug.db_password}\n- hashed_input: ${errorData.debug.hashed_input}\n- match: ${errorData.debug.match}`;
+                    debugMsg = `\n\nDebug:\n${JSON.stringify(errorData.debug, null, 2)}`;
                 }
                 throw new Error((errorData.error || 'Login failed') + debugMsg);
             }
+
+            const data: AuthResponse = await response.json();
+            
+            console.log('=== LOGIN SUCCESS ===');
+            console.log('data:', data);
 
             const data: AuthResponse = await response.json();
             
@@ -214,6 +219,10 @@ const NeonClient = {
                 const errorData = data;
                 throw new Error(errorData.error || 'Registration failed');
             }
+            
+            console.log('=== REGISTER SUCCESS ===');
+            console.log('Stored password (from debug):', data.debug?.stored_password_hash);
+            console.log('Verify rows:', data.debug?.verify_rows);
             
             if (data.token) {
                 setToken(data.token);

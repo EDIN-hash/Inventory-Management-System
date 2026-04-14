@@ -73,7 +73,13 @@ exports.handler = async function(event, context) {
             return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required' }) };
         }
         
+        console.log('=== LOGIN QUERY ===');
+        console.log('username:', username.trim());
+        
         const result = await sql.query('SELECT username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
+        
+        console.log('=== QUERY RESULT ===');
+        console.log('result:', JSON.stringify(result));
         
         const rows = result?.rows;
         
@@ -82,27 +88,45 @@ exports.handler = async function(event, context) {
         }
         
         const user = rows[0];
+        console.log('=== USER OBJECT ===');
+        console.log('user:', JSON.stringify(user));
+        console.log('keys:', Object.keys(user));
+        console.log('user[0]:', user[0]); // Neon might return array-like
+        console.log('username from user.username:', user.username);
+        console.log('username from user["username"]:', user['username']);
+        
+        // Try to get values regardless of key case
+        const userData = {};
+        Object.keys(user).forEach(k => userData[k.toLowerCase()] = user[k]);
+        console.log('normalized userData:', JSON.stringify(userData));
+        
+        const actualUsername = userData.username || user.username || user['username'];
+        const actualPassword = userData.password || user.password || user['password'];
+        const actualRole = userData.role || user.role || user['role'];
+        
         const hashedInputPassword = hashPassword(password);
         
         const debugInfo = {
           input_username: username.trim(),
-          db_username: user.username,
-          db_password_length: user.password?.length || 0,
+          actual_username: actualUsername,
+          actual_password_exists: !!actualPassword,
+          actual_password_length: actualPassword?.length,
           input_password_length: password?.length,
           hashed_input: hashedInputPassword,
-          db_password: user.password,
-          match: user.password === hashedInputPassword
+          actual_password: actualPassword,
+          match: actualPassword === hashedInputPassword
         };
         
         console.log('=== LOGIN SERVER DEBUG ===', JSON.stringify(debugInfo));
         
-        if (user.password !== hashedInputPassword) {
+        if (actualPassword !== hashedInputPassword) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: debugInfo }) };
         }
         
-        const authToken = createToken(user.username, user.role);
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
+        const authToken = createToken(actualUsername, actualRole);
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: actualUsername, role: actualRole }) };
       } catch (error) {
+        console.log('=== LOGIN ERROR ===', error);
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
       }
     }
@@ -130,14 +154,20 @@ exports.handler = async function(event, context) {
         `);
         
         await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, password, role',
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *',
             [username.trim(), hashedPassword, role || 'spectator']
         );
+        
+        // Query back what was stored
+        const verifyResult = await sql.query('SELECT * FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
+        console.log('=== REGISTER VERIFY ===');
+        console.log('stored user:', JSON.stringify(verifyResult.rows));
         
         const debugInfo = {
           username: username.trim(),
           stored_password_hash: hashedPassword,
-          role: role || 'spectator'
+          role: role || 'spectator',
+          verify_rows: verifyResult.rows
         };
         
         const authToken = createToken(username.trim(), role || 'spectator');
