@@ -91,7 +91,9 @@ exports.handler = async function(event, context) {
             const result2 = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [searchName]);
             
             if (!result2?.rows?.length) {
-                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true } }) };
+                // List all users for debugging
+                const allUsers = await sql.query('SELECT * FROM users');
+                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, all_users_count: allUsers?.rows?.length, all_users: allUsers?.rows } }) };
             }
             
             rows = result2.rows;
@@ -131,19 +133,29 @@ exports.handler = async function(event, context) {
         `);
         
         const insertResult = await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, password, role',
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING *',
             [username.trim(), hashedPassword, role || 'spectator']
         );
         
-        const storedUser = insertResult?.rows?.[0];
+        console.log('=== REGISTER INSERT RESULT ===');
+        console.log('insertResult:', JSON.stringify(insertResult));
+        console.log('insertResult.rows:', JSON.stringify(insertResult?.rows));
+        
+        // Use the inserted user directly from RETURNING
+        const storedUser = insertResult?.rows?.[0] || insertResult?.[0];
+        
+        console.log('=== STORED USER ===');
+        console.log('storedUser:', JSON.stringify(storedUser));
         
         const debugInfo = {
           username: username.trim(),
-          stored_password_hash: storedUser?.password,
+          stored_password_hash: storedUser?.password || 'NOT FOUND',
           input_hashed: hashedPassword,
           stored_and_input_match: storedUser?.password === hashedPassword,
           role: storedUser?.role
         };
+        
+        console.log('=== REGISTER DEBUG INFO ===', JSON.stringify(debugInfo));
         
         const authToken = createToken(username.trim(), storedUser?.role || role || 'spectator');
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: storedUser?.role || role || 'spectator', debug: debugInfo }) };
