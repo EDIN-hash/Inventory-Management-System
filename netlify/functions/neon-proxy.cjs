@@ -84,14 +84,18 @@ exports.handler = async function(event, context) {
         const user = rows[0];
         const hashedInputPassword = hashPassword(password);
         
-        console.log('=== LOGIN DEBUG ===');
-        console.log('Input username:', username.trim());
-        console.log('DB password:', user.password);
-        console.log('Hashed input:', hashedInputPassword);
-        console.log('Match:', user.password === hashedInputPassword);
+        // Return more debug info to client
+        const debugInfo = {
+          input_username: username.trim(),
+          db_username: user.username,
+          db_password_exists: !!user.password,
+          password_length: password?.length,
+          hashed_length: hashedInputPassword.length,
+          match: user.password === hashedInputPassword
+        };
         
         if (user.password !== hashedInputPassword) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: debugInfo }) };
         }
         
         const authToken = createToken(user.username, user.role);
@@ -124,12 +128,18 @@ exports.handler = async function(event, context) {
         `);
         
         await sql.query(
-            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
+            'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING username, password, role',
             [username.trim(), hashedPassword, role || 'spectator']
         );
         
+        const debugInfo = {
+          username: username.trim(),
+          stored_password_hash: hashedPassword,
+          role: role || 'spectator'
+        };
+        
         const authToken = createToken(username.trim(), role || 'spectator');
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: role || 'spectator' }) };
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: role || 'spectator', debug: debugInfo }) };
       } catch (error) {
         if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
         return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
