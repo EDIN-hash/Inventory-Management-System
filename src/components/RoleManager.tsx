@@ -58,16 +58,16 @@ export default function RoleManager() {
     };
 
     return (
-        <div className="card bg-gray-800 p-4 text-white w-full max-w-2xl mx-auto">
-            <h2 className="text-xl font-bold mb-4 text-center">Role Management</h2>
+        <div className="card bg-gray-800 p-3 text-white w-full max-w-lg mx-auto">
+            <h2 className="text-lg font-bold mb-3 text-center">Role Management</h2>
             
-            <form onSubmit={handleAddUser} className="flex flex-col md:flex-row gap-2 mb-4">
+            <form onSubmit={handleAddUser} className="flex flex-wrap gap-2 mb-3 justify-center">
                 <input
                     type="email"
-                    placeholder="user@example.com"
+                    placeholder="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="input input-bordered bg-gray-700 flex-1"
+                    className="input input-bordered bg-gray-700 w-full"
                     required
                 />
                 <select
@@ -85,23 +85,23 @@ export default function RoleManager() {
             </form>
 
             {loading ? (
-                <div className="text-center py-4">Loading...</div>
+                <div className="text-center py-2">Loading...</div>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
+                    <table className="table table-xs w-full">
                         <thead>
                             <tr>
                                 <th>Email</th>
                                 <th>Role</th>
-                                <th>Action</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             {users.map((u) => (
                                 <tr key={u.email}>
-                                    <td>{u.email}</td>
+                                    <td className="text-xs">{u.email}</td>
                                     <td>
-                                        <span className={`badge ${
+                                        <span className={`badge badge-xs ${
                                             u.role === 'admin' ? 'badge-error' :
                                             u.role === 'moder' ? 'badge-warning' :
                                             'badge-info'
@@ -110,9 +110,9 @@ export default function RoleManager() {
                                     <td>
                                         <button
                                             onClick={() => handleDeleteUser(u.email)}
-                                            className="btn btn-sm btn-error"
+                                            className="btn btn-xs btn-error"
                                         >
-                                            Delete
+                                            X
                                         </button>
                                     </td>
                                 </tr>
@@ -123,8 +123,8 @@ export default function RoleManager() {
             )}
             
             {users.length === 0 && (
-                <div className="text-center py-4 text-gray-400">
-                    No users. Add above.
+                <div className="text-center py-2 text-gray-400 text-sm">
+                    No users
                 </div>
             )}
         </div>
