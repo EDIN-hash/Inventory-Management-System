@@ -69,53 +69,74 @@ exports.handler = async function(event, context) {
 
     if (action === 'login') {
       try {
+        console.log('=== LOGIN START ===');
+        console.log('raw body:', JSON.stringify(body));
+        console.log('username:', username);
+        console.log('password:', password);
+        console.log('password type:', typeof password);
+        
         if (!username?.trim() || !password) {
-            return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required' }) };
+            return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required', debug: { username_received: !!username, password_received: !!password, password_value: password } }) };
         }
         
+        const searchName = username.trim();
         console.log('=== LOGIN QUERY ===');
-        console.log('username:', username.trim());
+        console.log('searching for:', searchName);
         
-        // Try lowercase search
-        const result = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
+        // Use simple exact match first
+        const result = await sql.query('SELECT id, username, role, password FROM users WHERE username = $1', [searchName]);
         
         console.log('=== QUERY RESULT ===');
-        console.log('result:', JSON.stringify(result));
+        console.log('rows count:', result?.rows?.length);
         console.log('rows:', JSON.stringify(result?.rows));
-        console.log('rows length:', result?.rows?.length);
         
         const rows = result?.rows;
         
         if (!rows || rows.length === 0) {
-            // Try without LOWER
-            const allUsers = await sql.query('SELECT id, username, role, password FROM users');
-            console.log('=== ALL USERS IN DB ===');
-            console.log('total users:', allUsers?.rows?.length);
-            console.log('users:', JSON.stringify(allUsers?.rows));
+            // Try case-insensitive
+            const result2 = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [searchName]);
+            console.log('=== CASE INSENSITIVE RESULT ===');
+            console.log('rows count:', result2?.rows?.length);
             
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, searched: username.trim(), all_users: allUsers?.rows?.length } }) };
+            if (!result2?.rows?.length) {
+                // List all users
+                const allUsers = await sql.query('SELECT id, username, role FROM users');
+                console.log('=== ALL USERS ===');
+                console.log('total:', allUsers?.rows?.length);
+                
+                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, searched: searchName, all_users: allUsers?.rows?.length } }) };
+            }
+            
+            const user = result2.rows[0];
+            console.log('=== FOUND USER (case insensitive) ===');
+            console.log('user:', JSON.stringify(user));
+            
+            const hashedInputPassword = hashPassword(password);
+            console.log('=== PASSWORD CHECK ===');
+            console.log('input hash:', hashedInputPassword);
+            console.log('db password:', user.password);
+            console.log('match:', user.password === hashedInputPassword);
+            
+            if (user.password !== hashedInputPassword) {
+                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { password_mismatch: true } }) };
+            }
+            
+            const authToken = createToken(user.username, user.role);
+            return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
         }
         
         const user = rows[0];
-        console.log('=== USER OBJECT ===');
+        console.log('=== USER FOUND ===');
         console.log('user:', JSON.stringify(user));
-        console.log('keys:', Object.keys(user));
         
         const hashedInputPassword = hashPassword(password);
-        
-        const debugInfo = {
-          input_username: username.trim(),
-          db_username: user.username,
-          db_password: user.password,
-          input_password: password,
-          hashed_input: hashedInputPassword,
-          match: user.password === hashedInputPassword
-        };
-        
-        console.log('=== LOGIN SERVER DEBUG ===', JSON.stringify(debugInfo));
+        console.log('=== PASSWORD CHECK ===');
+        console.log('input hash:', hashedInputPassword);
+        console.log('db password:', user.password);
+        console.log('match:', user.password === hashedInputPassword);
         
         if (user.password !== hashedInputPassword) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: debugInfo }) };
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { password_mismatch: true } }) };
         }
         
         const authToken = createToken(user.username, user.role);
