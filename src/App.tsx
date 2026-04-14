@@ -261,7 +261,7 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-[#1a1b26] p-3">
-            <header className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+            <header className="sticky top-0 z-50 bg-[#1a1b26] py-2 flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-gray-700">
                 <h1 className="text-3xl font-bold text-white">Inventory Management</h1>
                 {authLoading ? (
                     <span className="text-white">Loading...</span>
@@ -295,7 +295,7 @@ export default function App() {
                 </div>
             )}
 
-            <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4">
+            <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4 sticky top-20 z-40 bg-[#1a1b26]">
                 {categories.filter(cat => {
                     if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
                     if (cat === 'Ustawienia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
