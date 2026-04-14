@@ -262,7 +262,7 @@ export default function App() {
     return (
         <div className="min-h-screen bg-[#1a1b26] p-3 flex flex-col items-center">
             <div className="w-full max-w-7xl">
-            <header className="sticky top-0 z-50 bg-[#1a1b26] py-2 px-2 flex justify-between items-center border-b border-gray-700 min-h-[60px]">
+            <header className="bg-[#1a1b26] py-2 px-2 flex justify-between items-center border-b border-gray-700 min-h-[60px]">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Inventory</h1>
                 <div className="flex items-center gap-2">
                     {authLoading ? (
@@ -298,7 +298,7 @@ export default function App() {
                 </div>
             )}
 
-            <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4 sticky top-20 z-40 bg-[#1a1b26]">
+            <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4 bg-[#1a1b26]">
                 {categories.filter(cat => {
                     if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
                     if (cat === 'Ustawienia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
