@@ -467,6 +467,75 @@ export const api = {
             return null;
         }
     },
+
+    // ===== USER ROLES =====
+    async initUserRolesTable(): Promise<void> {
+        const query = `
+            CREATE TABLE IF NOT EXISTS user_roles (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                role VARCHAR(50) DEFAULT 'spectator',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `;
+        try {
+            await neonQuery(query, []);
+            console.log('user_roles table ready');
+        } catch (e) {
+            console.warn('user_roles table error:', e);
+        }
+    },
+
+    async setUserRole(email: string, role: string): Promise<boolean> {
+        await this.initUserRolesTable();
+        const query = `
+            INSERT INTO user_roles (email, role)
+            VALUES ($1, $2)
+            ON CONFLICT (email) DO UPDATE SET role = $2
+        `;
+        try {
+            await neonQuery(query, [email.toLowerCase(), role]);
+            console.log('Role set:', email, role);
+            return true;
+        } catch (e) {
+            console.error('Set role error:', e);
+            return false;
+        }
+    },
+
+    async getUserRole(email: string): Promise<string> {
+        await this.initUserRolesTable();
+        const query = `SELECT role FROM user_roles WHERE email = $1`;
+        try {
+            const result = await neonQuery<{ role: string }>(query, [email.toLowerCase()]);
+            return result[0]?.role || 'spectator';
+        } catch (e) {
+            console.warn('Get role error:', e);
+            return 'spectator';
+        }
+    },
+
+    async getAllUserRoles(): Promise<{ email: string; role: string }[]> {
+        await this.initUserRolesTable();
+        const query = `SELECT email, role FROM user_roles ORDER BY email`;
+        try {
+            return await neonQuery(query, []);
+        } catch (e) {
+            console.warn('Get all roles error:', e);
+            return [];
+        }
+    },
+
+    async deleteUserRole(email: string): Promise<boolean> {
+        const query = `DELETE FROM user_roles WHERE email = $1`;
+        try {
+            await neonQuery(query, [email.toLowerCase()]);
+            return true;
+        } catch (e) {
+            console.error('Delete role error:', e);
+            return false;
+        }
+    },
 };
 
 export default api;

@@ -8,6 +8,7 @@ import type { Item, SortConfig, StatusFilter, HistorySort } from "./types";
 import { CATEGORIES } from "./types";
 import Card from "./components/Card";
 import HistoryCard from "./components/HistoryCard";
+import RoleManager from "./components/RoleManager";
 
 Modal.setAppElement("#root");
 
@@ -83,32 +84,31 @@ export default function App() {
         localStorage.setItem('darkMode', String(darkMode));
     }, [darkMode]);
 
+    // Get role from database on login - auto-create if not exists
     useEffect(() => {
-        if (!authLoading && isAuthenticated && auth0User) {
-            let role = null;
-            
-            // 1. Namespace claim from Auth0 Action
-            if (auth0User['https://inventory.com/role']) {
-                role = auth0User['https://inventory.com/role'] as string;
+        const fetchUser = async () => {
+            if (!authLoading && isAuthenticated && auth0User) {
+                const email = auth0User.email;
+                if (email) {
+                    // First ensure table exists
+                    await api.initUserRolesTable();
+                    
+                    // Get role from database
+                    let role = await api.getUserRole(email);
+                    
+                    // If no role exists, set default as spectator (admin assigns manually)
+                    if (role === 'spectator') {
+                        console.log('No role in DB for:', email, '- using spectator');
+                    }
+                    
+                    setCurrentUser({ username: email, role });
+                    console.log('User logged in:', email, 'role from DB:', role);
+                }
+            } else if (!authLoading && !isAuthenticated) {
+                setCurrentUser(null);
             }
-            // 2. app_metadata
-            else if ((auth0User as any).app_metadata?.role) {
-                role = (auth0User as any).app_metadata.role;
-            }
-            // 3. Direct role field
-            else if ((auth0User as any).role) {
-                role = (auth0User as any).role;
-            }
-            
-            // Default role if not found
-            if (!role) {
-                role = 'spectator';
-            }
-            
-            setCurrentUser({ username: auth0User.name || auth0User.email || 'User', role });
-        } else if (!authLoading && !isAuthenticated) {
-            setCurrentUser(null);
-        }
+        };
+        fetchUser();
     }, [authLoading, isAuthenticated, auth0User]);
 
     const fetchItems = async () => {
@@ -289,7 +289,8 @@ export default function App() {
 
             <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4">
                 {categories.filter(cat => {
-                    if (cat === 'Historia') return currentUser && currentUser.role === 'moder';
+                    if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
+                    if (cat === 'Ustawienia') return currentUser && currentUser.role === 'admin';
                     return true;
                 }).map((category) => (
                     <button
@@ -302,7 +303,9 @@ export default function App() {
                 ))}
             </div>
 
-            {isLoading ? (
+            {selectedCategory === 'Ustawienia' && currentUser?.role === 'admin' ? (
+                <RoleManager />
+            ) : isLoading ? (
                 <div className="flex justify-center py-8">
                     <span className="loading loading-spinner"></span>
                 </div>
