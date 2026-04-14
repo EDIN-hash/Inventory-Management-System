@@ -69,7 +69,11 @@ exports.handler = async function(event, context) {
 
     if (action === 'login') {
       try {
-        const result = await sql.query('SELECT username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username?.trim()]);
+        if (!username?.trim() || !password) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required' }) };
+        }
+        
+        const result = await sql.query('SELECT username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username.trim()]);
         
         const rows = result?.rows;
         
@@ -79,6 +83,12 @@ exports.handler = async function(event, context) {
         
         const user = rows[0];
         const hashedInputPassword = hashPassword(password);
+        
+        console.log('=== LOGIN DEBUG ===');
+        console.log('Input username:', username.trim());
+        console.log('DB password:', user.password);
+        console.log('Hashed input:', hashedInputPassword);
+        console.log('Match:', user.password === hashedInputPassword);
         
         if (user.password !== hashedInputPassword) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
@@ -93,7 +103,15 @@ exports.handler = async function(event, context) {
     
     if (action === 'register') {
       try {
+        if (!username?.trim() || !password) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required' }) };
+        }
+        
         const hashedPassword = hashPassword(password);
+        
+        console.log('=== REGISTER DEBUG ===');
+        console.log('Input username:', username.trim());
+        console.log('Hashed password:', hashedPassword);
         
         await sql.query(`
           CREATE TABLE IF NOT EXISTS users (
@@ -107,11 +125,11 @@ exports.handler = async function(event, context) {
         
         await sql.query(
             'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
-            [username, hashedPassword, role || 'spectator']
+            [username.trim(), hashedPassword, role || 'spectator']
         );
         
-        const authToken = createToken(username, role || 'spectator');
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username, role: role || 'spectator' }) };
+        const authToken = createToken(username.trim(), role || 'spectator');
+        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username.trim(), role: role || 'spectator' }) };
       } catch (error) {
         if (error.code === '23505') return { statusCode: 400, body: JSON.stringify({ error: 'Username already exists' }) };
         return { statusCode: 500, body: JSON.stringify({ error: error.message, code: error.code }) };
