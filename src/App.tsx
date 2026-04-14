@@ -260,31 +260,31 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen bg-[#1a1b26] p-2 sm:p-6">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-                <h1 className="text-xl sm:text-3xl font-bold text-white text-center sm:text-left w-full sm:w-auto">Inventory</h1>
+        <div className="min-h-screen bg-[#1a1b26] p-2 sm:p-4 md:p-6">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 md:mb-4 gap-2">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white text-center md:text-left w-full md:w-auto shrink-0">Inventory</h1>
                 {authLoading ? (
                     <span className="text-white text-sm">Loading...</span>
                 ) : !currentUser ? (
                     <div className="flex flex-wrap gap-2 justify-center w-full">
-                        <button onClick={() => loginWithRedirect()} className="btn btn-primary btn-sm">Login</button>
-                        <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary btn-sm">Register</button>
+                        <button onClick={() => loginWithRedirect()} className="btn btn-primary btn-md">Login</button>
+                        <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary btn-md">Register</button>
                     </div>
                 ) : (
-                    <div className="flex flex-wrap gap-2 items-center justify-center w-full">
+                    <div className="flex flex-wrap gap-2 items-center justify-center md:justify-end w-full min-w-0">
                         <input
                             type="text"
                             placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="input input-bordered bg-gray-700 text-white input-sm w-full sm:w-auto min-w-[120px]"
-                            style={{ maxWidth: '200px' }}
+                            className="input input-bordered bg-gray-700 text-white input-md min-w-[120px] md:min-w-[180px]"
                         />
                         {currentUser.role === "admin" && selectedCategory !== 'Historia' && (
                             <button onClick={() => openItemModal()} className="btn btn-success btn-sm">Add</button>
                         )}
                         <button onClick={() => auth0Logout({ logoutParams: { returnTo: window.location.origin } })} className="btn btn-error btn-sm">Logout</button>
-                        <span className="text-white text-xs sm:text-sm whitespace-nowrap">{currentUser.username.split('@')[0]} ({currentUser.role})</span>
+                        <span className="text-white text-xs md:text-sm whitespace-nowrap truncate max-w-[100px] md:max-w-none">{currentUser.username.split('@')[0]}</span>
+                        <span className="badge badge-sm badge-primary">{currentUser.role}</span>
                     </div>
                 )}
             </header>
@@ -296,7 +296,7 @@ export default function App() {
                 </div>
             )}
 
-            <div className="tabs pb-2 flex flex-nowrap sm:flex-wrap gap-1 sm:gap-2 justify-start sm:justify-center mb-4 overflow-x-auto">
+            <div className="tabs pb-2 flex flex-nowrap md:flex-wrap gap-1 md:gap-2 justify-start md:justify-center mb-3 md:mb-4 overflow-x-auto px-1">
                 {categories.filter(cat => {
                     if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
                     if (cat === 'Ustawienia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
@@ -304,7 +304,7 @@ export default function App() {
                 }).map((category) => (
                     <button
                         key={category}
-                        className={`btn btn-sm ${selectedCategory === category ? 'btn-active' : ''}`}
+                        className={`btn btn-sm md:btn-md ${selectedCategory === category ? 'btn-active' : ''} text-xs md:text-sm`}
                         onClick={() => setSelectedCategory(category)}
                     >
                         {category}
@@ -319,7 +319,7 @@ export default function App() {
                     <span className="loading loading-spinner"></span>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                     {filteredItems.map((item) => (
                         <Card
                             key={item.name}
