@@ -26,7 +26,7 @@ A web application for inventory management and tracking. PWA with offline suppor
 | Frontend | React 18, TypeScript, Vite |
 | Styling | TailwindCSS, DaisyUI |
 | Backend | Neon (PostgreSQL), Netlify Functions |
-| Auth | JWT |
+| Auth | Auth0 (OAuth 2.0 / OIDC) |
 | PWA | Service Worker, Web Manifest |
 
 ### 🏗 Project Structure

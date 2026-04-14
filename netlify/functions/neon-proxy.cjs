@@ -25,8 +25,8 @@ function verifyToken(token) {
     }
 }
 
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
+function simpleHash(password) {
+    return password;
 }
 
 exports.handler = async function(event, context) {
@@ -76,9 +76,9 @@ exports.handler = async function(event, context) {
                 }
                 
                 const user = rows[0];
-                const hashedInputPassword = hashPassword(password);
+                const simpleInputPassword = simpleHash(password);
                 
-                if (user.password !== hashedInputPassword) {
+                if (user.password !== simpleInputPassword) {
                     return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
                 }
                 
@@ -99,7 +99,7 @@ exports.handler = async function(event, context) {
                     return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required' }) };
                 }
                 
-                const hashedPassword = hashPassword(password);
+                const hashedPassword = simpleHash(password);
                 
                 await sql.query(`
                     CREATE TABLE IF NOT EXISTS users (
@@ -116,7 +116,11 @@ exports.handler = async function(event, context) {
                     [username.trim(), hashedPassword, role || 'spectator']
                 );
                 
-                const user = insertResult.rows[0];
+                const user = insertResult && insertResult.rows ? insertResult.rows[0] : null;
+                
+                if (!user) {
+                    return { statusCode: 500, body: JSON.stringify({ error: 'Registration failed - user not found' }) };
+                }
                 const authToken = createToken(user.username, user.role);
                 return { 
                     statusCode: 200, 
