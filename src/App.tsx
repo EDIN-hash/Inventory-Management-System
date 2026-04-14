@@ -86,12 +86,13 @@ export default function App() {
     useEffect(() => {
         console.log('Auth state:', { authLoading, isAuthenticated, isError: error });
         if (!authLoading && isAuthenticated && auth0User) {
-            console.log('User logged in:', JSON.stringify(auth0User, null, 2));
-            // For now: all authenticated users = admin
-            // TODO: get role from Auth0 metadata or Action
-            const role = 'admin';
+            console.log('User logged in:', auth0User);
+            // Get role from Auth0 - either from token claim or app_metadata
+            let role = (auth0User['https://inventory.com/role'] as string) 
+                || (auth0User as any).app_metadata?.role 
+                || 'spectator';
             setCurrentUser({ username: auth0User.name || auth0User.email || 'User', role });
-            console.log('User role:', role);
+            console.log('User role from Auth0:', role);
         } else if (!authLoading && !isAuthenticated) {
             console.log('User not authenticated');
             setCurrentUser(null);
