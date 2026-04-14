@@ -91,9 +91,12 @@ exports.handler = async function(event, context) {
             const result2 = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [searchName]);
             
             if (!result2?.rows?.length) {
-                // List all users for debugging
+                // Get ALL users to see what's actually in DB
                 const allUsers = await sql.query('SELECT * FROM users');
-                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, all_users_count: allUsers?.rows?.length, all_users: allUsers?.rows } }) };
+                console.log('=== ALL USERS IN DB ===');
+                console.log('allUsers rows:', JSON.stringify(allUsers?.rows));
+                
+                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, all_users: allUsers?.rows } }) };
             }
             
             rows = result2.rows;
@@ -139,10 +142,18 @@ exports.handler = async function(event, context) {
         
         console.log('=== REGISTER INSERT RESULT ===');
         console.log('insertResult:', JSON.stringify(insertResult));
-        console.log('insertResult.rows:', JSON.stringify(insertResult?.rows));
         
-        // Use the inserted user directly from RETURNING
-        const storedUser = insertResult?.rows?.[0] || insertResult?.[0];
+        // Force verify - query back the user we just inserted
+        const verifyResult = await sql.query('SELECT * FROM users WHERE username = $1', [username.trim()]);
+        console.log('=== REGISTER VERIFY QUERY ===');
+        console.log('verifyResult:', JSON.stringify(verifyResult));
+        console.log('rows:', JSON.stringify(verifyResult?.rows));
+        
+        if (!verifyResult?.rows?.length) {
+            return { statusCode: 500, body: JSON.stringify({ error: 'Registration failed - user not found after insert', debug: { insertResult: insertResult?.rows } }) };
+        }
+        
+        const storedUser = verifyResult.rows[0];
         
         console.log('=== STORED USER ===');
         console.log('storedUser:', JSON.stringify(storedUser));

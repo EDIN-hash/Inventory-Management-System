@@ -127,16 +127,12 @@ async function neonQuery<T = unknown>(sql: string, params: unknown[] = []): Prom
 const NeonClient = {
     query: neonQuery,
     
-    // Login user with JWT
+// Login user with JWT
     async loginUser(username: string, password: string): Promise<User | null> {
         const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
             ? 'http://localhost:8888/.netlify/functions/neon-proxy'
             : '/.netlify/functions/neon-proxy');
 
-        console.log('=== CLIENT LOGIN DEBUG ===');
-        console.log('username:', username);
-        console.log('password length:', password?.length);
-        
         try {
             const response = await fetch(functionUrl, {
                 method: 'POST',
@@ -153,22 +149,12 @@ const NeonClient = {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.log('=== LOGIN SERVER RESPONSE ===');
-                console.log('status:', response.status);
-                console.log('errorData:', errorData);
-                
-                let debugMsg = '';
-                if (errorData.debug) {
-                    debugMsg = `\n\nDebug:\n${JSON.stringify(errorData.debug, null, 2)}`;
-                }
-                throw new Error((errorData.error || 'Login failed') + debugMsg);
+                console.log('Login failed:', errorData);
+                throw new Error(errorData.error || 'Login failed');
             }
 
             const data: AuthResponse = await response.json();
             
-            console.log('=== LOGIN SUCCESS ===');
-            console.log('data:', data);
-
             if (data.token) {
                 setToken(data.token);
                 setUser({ username: data.username, role: data.role as User['role'] });
@@ -187,11 +173,6 @@ const NeonClient = {
         const functionUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV 
             ? 'http://localhost:8888/.netlify/functions/neon-proxy'
             : '/.netlify/functions/neon-proxy');
-
-        console.log('=== CLIENT REGISTER DEBUG ===');
-        console.log('username:', username);
-        console.log('password length:', password?.length);
-        console.log('role:', role);
         
         try {
             const response = await fetch(functionUrl, {
@@ -208,21 +189,11 @@ const NeonClient = {
                 })
             });
 
-            console.log('=== REGISTER SERVER RESPONSE ===');
-            console.log('status:', response.status);
             const data: AuthResponse = await response.json();
-            console.log('data:', data);
             
             if (!response.ok) {
-                const errorData = data;
-                throw new Error(errorData.error || 'Registration failed');
+                throw new Error(data.error || 'Registration failed');
             }
-            
-            console.log('=== REGISTER SUCCESS ===');
-            console.log('Stored password (from debug):', data.debug?.stored_password_hash);
-            console.log('Input hashed:', data.debug?.input_hashed);
-            console.log('Match:', data.debug?.stored_and_input_match);
-            console.log('Stored role:', data.debug?.role);
             
             if (data.token) {
                 setToken(data.token);
