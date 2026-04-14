@@ -260,8 +260,9 @@ export default function App() {
     );
 
     return (
-        <div className="min-h-screen bg-[#1a1b26] p-3">
-            <header className="sticky top-0 z-50 bg-[#1a1b26] py-2 px-2 flex flex-wrap justify-between items-center gap-2 border-b border-gray-700 min-h-[60px]">
+        <div className="min-h-screen bg-[#1a1b26] p-3 flex flex-col items-center">
+            <div className="w-full max-w-7xl">
+            <header className="sticky top-0 z-50 bg-[#1a1b26] py-2 px-2 flex justify-between items-center border-b border-gray-700 min-h-[60px]">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">Inventory</h1>
                 <div className="flex items-center gap-2">
                     {authLoading ? (
