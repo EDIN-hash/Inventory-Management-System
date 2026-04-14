@@ -58,28 +58,28 @@ export default function RoleManager() {
     };
 
     return (
-        <div className="card bg-gray-800 p-4 text-white">
-            <h2 className="text-xl font-bold mb-4">Role Management</h2>
+        <div className="card bg-gray-800 p-3 sm:p-4 text-white w-full">
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Role Management</h2>
             
-            <form onSubmit={handleAddUser} className="flex gap-2 mb-4">
+            <form onSubmit={handleAddUser} className="flex flex-col sm:flex-row gap-2 mb-4">
                 <input
                     type="email"
                     placeholder="user@example.com"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="input input-bordered bg-gray-700 flex-1"
+                    className="input input-bordered bg-gray-700 flex-1 text-sm"
                     required
                 />
                 <select
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value)}
-                    className="select select-bordered bg-gray-700"
+                    className="select select-bordered bg-gray-700 text-sm"
                 >
                     <option value="spectator">Spectator</option>
                     <option value="moder">Moder</option>
                     <option value="admin">Admin</option>
                 </select>
-                <button type="submit" disabled={saving} className="btn btn-primary">
+                <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
                     {saving ? '...' : 'Add'}
                 </button>
             </form>
@@ -88,7 +88,7 @@ export default function RoleManager() {
                 <div className="text-center py-4">Loading...</div>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="table w-full">
+                    <table className="table table-xs sm:table w-full">
                         <thead>
                             <tr>
                                 <th>Email</th>
@@ -99,9 +99,9 @@ export default function RoleManager() {
                         <tbody>
                             {users.map((u) => (
                                 <tr key={u.email}>
-                                    <td>{u.email}</td>
+                                    <td className="text-xs sm:text-sm">{u.email}</td>
                                     <td>
-                                        <span className={`badge ${
+                                        <span className={`badge badge-sm ${
                                             u.role === 'admin' ? 'badge-error' :
                                             u.role === 'moder' ? 'badge-warning' :
                                             'badge-info'
@@ -110,9 +110,9 @@ export default function RoleManager() {
                                     <td>
                                         <button
                                             onClick={() => handleDeleteUser(u.email)}
-                                            className="btn btn-sm btn-error"
+                                            className="btn btn-xs btn-error"
                                         >
-                                            Delete
+                                            X
                                         </button>
                                     </td>
                                 </tr>
@@ -123,8 +123,8 @@ export default function RoleManager() {
             )}
             
             {users.length === 0 && (
-                <div className="text-center py-4 text-gray-400">
-                    No users with roles. Add above.
+                <div className="text-center py-4 text-gray-400 text-sm">
+                    No users. Add above.
                 </div>
             )}
         </div>

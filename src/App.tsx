@@ -96,9 +96,17 @@ export default function App() {
                     // Get role from database
                     let role = await api.getUserRole(email);
                     
-                    // If no role exists, set default as spectator (admin assigns manually)
+                    // If no role exists, set default as spectator
                     if (role === 'spectator') {
-                        console.log('No role in DB for:', email, '- using spectator');
+                        // Check if user exists in DB - if not, add with default spectator
+                        const existingUsers = await api.getAllUserRoles();
+                        const userExists = existingUsers.some(u => u.email === email.toLowerCase());
+                        
+                        if (!userExists) {
+                            // Auto-create new user in database with spectator role
+                            await api.setUserRole(email, 'spectator');
+                            console.log('New user added to DB:', email, 'role: spectator');
+                        }
                     }
                     
                     setCurrentUser({ username: email, role });
@@ -253,29 +261,30 @@ export default function App() {
 
     return (
         <div className="min-h-screen bg-[#1a1b26] p-2 sm:p-6">
-            <header className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">Inventory Management</h1>
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                <h1 className="text-xl sm:text-3xl font-bold text-white text-center sm:text-left w-full sm:w-auto">Inventory</h1>
                 {authLoading ? (
-                    <span className="text-white">Loading...</span>
+                    <span className="text-white text-sm">Loading...</span>
                 ) : !currentUser ? (
-                    <div className="flex gap-2">
-                        <button onClick={() => { console.log('Login click'); loginWithRedirect(); }} className="btn btn-primary">Login</button>
-                        <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary">Register</button>
+                    <div className="flex flex-wrap gap-2 justify-center w-full">
+                        <button onClick={() => loginWithRedirect()} className="btn btn-primary btn-sm">Login</button>
+                        <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary btn-sm">Register</button>
                     </div>
                 ) : (
-                    <div className="flex gap-2 items-center">
+                    <div className="flex flex-wrap gap-2 items-center justify-center w-full">
                         <input
                             type="text"
                             placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="input input-bordered bg-gray-700 text-white"
+                            className="input input-bordered bg-gray-700 text-white input-sm w-full sm:w-auto min-w-[120px]"
+                            style={{ maxWidth: '200px' }}
                         />
                         {currentUser.role === "admin" && selectedCategory !== 'Historia' && (
-                            <button onClick={() => openItemModal()} className="btn btn-success">Add Item</button>
+                            <button onClick={() => openItemModal()} className="btn btn-success btn-sm">Add</button>
                         )}
-                        <button onClick={() => auth0Logout({ logoutParams: { returnTo: window.location.origin } })} className="btn btn-error">Logout</button>
-                        <span className="text-white">{currentUser.username} ({currentUser.role})</span>
+                        <button onClick={() => auth0Logout({ logoutParams: { returnTo: window.location.origin } })} className="btn btn-error btn-sm">Logout</button>
+                        <span className="text-white text-xs sm:text-sm whitespace-nowrap">{currentUser.username.split('@')[0]} ({currentUser.role})</span>
                     </div>
                 )}
             </header>
@@ -287,7 +296,7 @@ export default function App() {
                 </div>
             )}
 
-            <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4">
+            <div className="tabs pb-2 flex flex-nowrap sm:flex-wrap gap-1 sm:gap-2 justify-start sm:justify-center mb-4 overflow-x-auto">
                 {categories.filter(cat => {
                     if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
                     if (cat === 'Ustawienia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
@@ -295,7 +304,7 @@ export default function App() {
                 }).map((category) => (
                     <button
                         key={category}
-                        className={`btn ${selectedCategory === category ? 'btn-active' : ''}`}
+                        className={`btn btn-sm ${selectedCategory === category ? 'btn-active' : ''}`}
                         onClick={() => setSelectedCategory(category)}
                     >
                         {category}
@@ -310,7 +319,7 @@ export default function App() {
                     <span className="loading loading-spinner"></span>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                     {filteredItems.map((item) => (
                         <Card
                             key={item.name}
