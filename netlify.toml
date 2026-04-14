@@ -1,4 +1,4 @@
-# Netlify configuration for Inventory PWA with Neon
+# Netlify configuration for Inventory PWA
 
 [build]
   command = "npm run build"
@@ -6,35 +6,24 @@
   functions = "netlify/functions"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "APP_SECRET,TOKEN_KEY,SIGNING_SECRET,AUTH0_CLIENT_ID,AUTH0_DOMAIN"
+  SECRETS_SCAN_OMIT_KEYS = "APP_SECRET,TOKEN_KEY"
   SECRETS_SCAN_ENABLED = "false"
 
 [dev]
   command = "vite"
   port = 8888
   targetPort = 5173
-  publish = "dist"
-  autoLaunch = true
 
-# Redirects for Single Page Application
+# SPA redirect
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Headers for security and caching
+# CSP - allow Auth0 and Neon
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self' https://*.neon.tech https://dev-ltz64nfoijkvemqi.us.auth0.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.neon.tech https://dev-ltz64nfoijkvemqi.us.auth0.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net https://unpkg.com https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' https://*.neon.tech https://fonts.googleapis.com https://dev-ltz64nfoijkvemqi.us.auth0.com https://oauth.token.auth0.com https://cdn.jsdelivr.net; frame-src 'self' https://dev-ltz64nfoijkvemqi.us.auth0.com; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src * data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src * data:; connect-src *; frame-src *"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "geolocation=(), microphone=(), camera()"
-
-# Environment variables for production
-# Set DATABASE_URL in Netlify dashboard as a secret
-
-# For local development, create a .env file with DATABASE_URL
-# Example: DATABASE_URL=postgresql://username:password@localhost:5432/dbname
-# Or for Neon: DATABASE_URL=postgresql://neondb_owner:password@ep-restless-king-aesec10z-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require
