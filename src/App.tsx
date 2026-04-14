@@ -393,6 +393,7 @@ export default function App() {
                     <button onClick={closeGetIdModal} className="btn btn-ghost">Close</button>
                 </div>
             </Modal>
+            </div>
         </div>
     );
 }
