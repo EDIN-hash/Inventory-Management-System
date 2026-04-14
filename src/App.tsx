@@ -34,6 +34,7 @@ export default function App() {
     const { 
         isLoading: authLoading, 
         isAuthenticated, 
+        error,
         loginWithRedirect, 
         logout: auth0Logout, 
         user: auth0User 
@@ -83,10 +84,13 @@ export default function App() {
     }, [darkMode]);
 
     useEffect(() => {
+        console.log('Auth state:', { authLoading, isAuthenticated, isError: error });
         if (!authLoading && isAuthenticated && auth0User) {
+            console.log('User logged in:', auth0User);
             const role = (auth0User['https://inventory.com/role'] as string) || 'spectator';
             setCurrentUser({ username: auth0User.name || auth0User.email || 'User', role });
         } else if (!authLoading && !isAuthenticated) {
+            console.log('User not authenticated');
             setCurrentUser(null);
         }
     }, [authLoading, isAuthenticated, auth0User]);
@@ -239,7 +243,7 @@ export default function App() {
                     <span className="text-white">Loading...</span>
                 ) : !currentUser ? (
                     <div className="flex gap-2">
-                        <button onClick={() => loginWithRedirect()} className="btn btn-primary">Login</button>
+                        <button onClick={() => { console.log('Login click'); loginWithRedirect(); }} className="btn btn-primary">Login</button>
                         <button onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })} className="btn btn-secondary">Register</button>
                     </div>
                 ) : (
