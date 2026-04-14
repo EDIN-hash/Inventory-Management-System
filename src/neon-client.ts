@@ -157,9 +157,10 @@ const NeonClient = {
                 console.log('status:', response.status);
                 console.log('errorData:', errorData);
                 
-                const debugMsg = errorData.debug ? 
-                    `\n\nDebug info:\n- DB username: ${errorData.debug.db_username}\n- Match: ${errorData.debug.match}` : 
-                    '';
+                let debugMsg = '';
+                if (errorData.debug) {
+                    debugMsg = `\n\nDebug:\n- db_username: ${errorData.debug.db_username}\n- db_password: ${errorData.debug.db_password}\n- hashed_input: ${errorData.debug.hashed_input}\n- match: ${errorData.debug.match}`;
+                }
                 throw new Error((errorData.error || 'Login failed') + debugMsg);
             }
 

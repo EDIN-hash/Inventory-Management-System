@@ -78,21 +78,23 @@ exports.handler = async function(event, context) {
         const rows = result?.rows;
         
         if (!rows || rows.length === 0) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, searched: username.trim() } }) };
         }
         
         const user = rows[0];
         const hashedInputPassword = hashPassword(password);
         
-        // Return more debug info to client
         const debugInfo = {
           input_username: username.trim(),
           db_username: user.username,
-          db_password_exists: !!user.password,
-          password_length: password?.length,
-          hashed_length: hashedInputPassword.length,
+          db_password_length: user.password?.length || 0,
+          input_password_length: password?.length,
+          hashed_input: hashedInputPassword,
+          db_password: user.password,
           match: user.password === hashedInputPassword
         };
+        
+        console.log('=== LOGIN SERVER DEBUG ===', JSON.stringify(debugInfo));
         
         if (user.password !== hashedInputPassword) {
             return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: debugInfo }) };
