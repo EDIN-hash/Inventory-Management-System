@@ -290,7 +290,7 @@ export default function App() {
             <div className="tabs pb-2 flex flex-wrap gap-2 justify-center mb-4">
                 {categories.filter(cat => {
                     if (cat === 'Historia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
-                    if (cat === 'Ustawienia') return currentUser && currentUser.role === 'admin';
+                    if (cat === 'Ustawienia') return currentUser && (currentUser.role === 'moder' || currentUser.role === 'admin');
                     return true;
                 }).map((category) => (
                     <button
@@ -303,7 +303,7 @@ export default function App() {
                 ))}
             </div>
 
-            {selectedCategory === 'Ustawienia' && currentUser?.role === 'admin' ? (
+            {selectedCategory === 'Ustawienia' && (currentUser?.role === 'admin' || currentUser?.role === 'moder') ? (
                 <RoleManager />
             ) : isLoading ? (
                 <div className="flex justify-center py-8">
