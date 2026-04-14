@@ -69,27 +69,24 @@ exports.handler = async function(event, context) {
 
     if (action === 'login') {
       try {
-        console.log('=== LOGIN DEBUG ===');
-        console.log('username received:', username);
-        console.log('password received:', password ? 'yes' : 'no');
-        
         const result = await sql.query('SELECT username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [username?.trim()]);
         
         const rows = result?.rows;
-        console.log('DB result rows:', rows?.length);
         
         if (!rows || rows.length === 0) {
-            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { username_received: username, users_in_db: 'check table' } }) };
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
         }
         
         const user = rows[0];
-        console.log('User found:', user.username);
+        const hashedInputPassword = hashPassword(password);
         
-        // Skip password check
+        if (user.password !== hashedInputPassword) {
+            return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials' }) };
+        }
+        
         const authToken = createToken(user.username, user.role);
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: user.username, role: user.role }) };
       } catch (error) {
-        console.log('Login error:', error.message);
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
       }
     }
@@ -108,13 +105,11 @@ exports.handler = async function(event, context) {
           )
         `);
         
-        // Skip the SELECT - if INSERT didn't throw error, user was created
         await sql.query(
             'INSERT INTO users (username, password, role) VALUES ($1, $2, $3)',
             [username, hashedPassword, role || 'spectator']
         );
         
-        // Just return success without fetching
         const authToken = createToken(username, role || 'spectator');
         return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ token: authToken, username: username, role: role || 'spectator' }) };
       } catch (error) {
