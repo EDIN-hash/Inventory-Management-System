@@ -67,21 +67,14 @@ exports.handler = async function(event, context) {
     const body = JSON.parse(event.body);
     const { action, query, params, username, password, role, token: registerToken } = body;
 
-    if (action === 'login') {
+if (action === 'login') {
       try {
-        console.log('=== LOGIN START ===');
-        console.log('raw body:', JSON.stringify(body));
-        console.log('username:', username);
-        console.log('password:', password);
-        console.log('password type:', typeof password);
-        
-        if (!username?.trim() || !password) {
-            return { statusCode: 400, body: JSON.stringify({ error: 'Username and password required', debug: { username_received: !!username, password_received: !!password, password_value: password } }) };
-        }
-        
         const searchName = username.trim();
         
-        // Use simple exact match first
+        // First, let's just get ALL users to see what's in DB
+        const allUsersResult = await sql.query('SELECT id, username, role, password FROM users');
+        
+        // Now try to find specific user
         const result = await sql.query('SELECT id, username, role, password FROM users WHERE username = $1', [searchName]);
         
         let rows = result?.rows;
@@ -91,12 +84,7 @@ exports.handler = async function(event, context) {
             const result2 = await sql.query('SELECT id, username, role, password FROM users WHERE LOWER(username) = LOWER($1)', [searchName]);
             
             if (!result2?.rows?.length) {
-                // Get ALL users to see what's actually in DB
-                const allUsers = await sql.query('SELECT * FROM users');
-                console.log('=== ALL USERS IN DB ===');
-                console.log('allUsers rows:', JSON.stringify(allUsers?.rows));
-                
-                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, all_users: allUsers?.rows } }) };
+                return { statusCode: 401, body: JSON.stringify({ error: 'Invalid credentials', debug: { no_user_found: true, all_users: allUsersResult?.rows } }) };
             }
             
             rows = result2.rows;
