@@ -169,8 +169,6 @@ const NeonClient = {
             console.log('=== LOGIN SUCCESS ===');
             console.log('data:', data);
 
-            const data: AuthResponse = await response.json();
-            
             if (data.token) {
                 setToken(data.token);
                 setUser({ username: data.username, role: data.role as User['role'] });
