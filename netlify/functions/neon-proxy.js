@@ -1,9 +1,56 @@
 import { neon } from '@neondatabase/serverless';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+
+// Try to load optional dependencies, fallback to simple hash if not available
+let bcrypt, jwt;
+try {
+    bcrypt = require('bcryptjs');
+    jwt = require('jsonwebtoken');
+} catch (e) {
+    console.log('Warning: bcryptjs/jsonwebtoken not available, using fallback');
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'inventory-pwa-secret-key-change-in-production';
 const TOKEN_EXPIRY_HOURS = 24;
+
+// Fallback functions if dependencies not available
+function hashPassword(password) {
+    if (bcrypt) {
+        return bcrypt.hash(password, 10);
+    }
+    return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
+}
+
+function verifyPassword(password, hash) {
+    if (bcrypt) {
+        return bcrypt.compare(password, hash);
+    }
+    return hash === crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
+}
+
+function createToken(username, role) {
+    if (jwt) {
+        return jwt.sign({ username, role }, JWT_SECRET, { expiresIn: `${TOKEN_EXPIRY_HOURS}h` });
+    }
+    // Simple fallback token
+    const payload = { username, role, exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000) };
+    return Buffer.from(JSON.stringify(payload)).toString('base64');
+}
+
+function verifyToken(token) {
+    if (jwt) {
+        try {
+            return jwt.verify(token, JWT_SECRET);
+        } catch { return null; }
+    }
+    // Simple fallback verification
+    try {
+        const payload = JSON.parse(Buffer.from(token, 'base64').toString());
+        const parsed = JSON.parse(payload);
+        if (parsed.exp < Date.now()) return null;
+        return parsed;
+    } catch { return null; }
+}
 
 // ============================================
 // DEBUG LOGGING SYSTEM
@@ -38,46 +85,89 @@ function debugLog(level, message, data = null) {
 }
 
 // ============================================
-// PASSWORD HASHING (bcrypt)
+// PASSWORD HASHING (bcrypt or fallback)
 // ============================================
 async function hashPassword(password) {
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-    debugLog('DEBUG', 'Password hashed successfully', { length: hash.length });
-    return hash;
+    if (bcrypt) {
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+        debugLog('DEBUG', 'Password hashed successfully', { length: hash.length });
+        return hash;
+    }
+    // Simple fallback without salt
+    return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
 }
 
 async function verifyPassword(password, hash) {
-    const isValid = await bcrypt.compare(password, hash);
-    debugLog('DEBUG', 'Password verified', { valid: isValid });
-    return isValid;
+    if (bcrypt) {
+        const isValid = await bcrypt.compare(password, hash);
+        debugLog('DEBUG', 'Password verified', { valid: isValid });
+        return isValid;
+    }
+    // Simple fallback verification
+    const testHash = crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
+    return testHash === hash;
 }
 
 // ============================================
-// JWT TOKEN SYSTEM
+// JWT TOKEN SYSTEM (jwt or fallback)
 // ============================================
 function createToken(username, role) {
+    if (jwt) {
+        const payload = {
+            username,
+            role,
+            iat: Math.floor(Date.now() / 1000)
+        };
+        
+        const token = jwt.sign(payload, JWT_SECRET, {
+            expiresIn: `${TOKEN_EXPIRY_HOURS}h`
+        });
+        
+        debugLog('DEBUG', 'JWT token created', { username, role });
+        return token;
+    }
+    
+    // Simple fallback token
     const payload = {
         username,
         role,
-        iat: Math.floor(Date.now() / 1000)
+        exp: Date.now() + (TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
     };
-    
-    const token = jwt.sign(payload, JWT_SECRET, {
-        expiresIn: `${TOKEN_EXPIRY_HOURS}h`
-    });
-    
-    debugLog('DEBUG', 'JWT token created', { username, role });
-    return token;
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const signature = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
+    return `${encoded}.${signature}`;
 }
 
 function verifyToken(token) {
+    if (jwt) {
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            debugLog('DEBUG', 'JWT token verified', { username: decoded.username });
+            return decoded;
+        } catch (error) {
+            debugLog('WARN', 'JWT token verification failed', { error: error.message });
+            return null;
+        }
+    }
+    
+    // Simple fallback verification
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        debugLog('DEBUG', 'JWT token verified', { username: decoded.username });
-        return decoded;
-    } catch (error) {
-        debugLog('WARN', 'JWT token verification failed', { error: error.message });
+        const [encoded, signature] = token.split('.');
+        const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
+        
+        if (signature !== expectedSig) {
+            return null;
+        }
+        
+        const payload = JSON.parse(Buffer.from(encoded, 'base64').toString());
+        
+        if (payload.exp < Date.now()) {
+            return null;
+        }
+        
+        return { username: payload.username, role: payload.role };
+    } catch {
         return null;
     }
 }
