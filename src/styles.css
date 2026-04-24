@@ -334,6 +334,13 @@ body {
     border-radius: 20px;
     padding: 4px 12px;
     font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+}
 
 /* Tokyo Night Stoisko Section */
 .stoisko-section {
@@ -367,13 +374,6 @@ body {
     color: var(--fg);
     font-size: 16px;
     font-weight: 600;
-}
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
 }
 
 /* Category Badges */
@@ -577,24 +577,7 @@ body {
     margin-top: 0.25rem;
 }
 
-/* Improved badge styling */
-.badge-modern {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--fg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    height: 24px;
-    white-space: nowrap;
-    transition: all 0.2s ease;
-}
-
+/* Improved badge styling hover */
 .badge-modern:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(122, 162, 247, 0.1);

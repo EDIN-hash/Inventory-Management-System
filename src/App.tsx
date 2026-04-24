@@ -50,6 +50,9 @@ export default function App() {
     const [SERVER_URL, setServerUrl] = useState(import.meta.env.VITE_SERVER_URL || "http://localhost:3001");
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'na-stanie', 'wyjechalo'
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const ITEMS_PER_PAGE = 50;
     
     // History filters
     const [historySort, setHistorySort] = useState('date_desc'); // 'date_desc', 'date_asc', 'user'
@@ -129,15 +132,16 @@ export default function App() {
         setDarkMode(!darkMode);
     };
 
-    const fetchItems = async () => {
+    const fetchItems = async (page = 1) => {
         setIsLoading(true);
         try {
             if (selectedCategory === 'Historia') {
-                const history = await NeonClient.getHistory();
+                const history = await NeonClient.getHistory(null, page, 50);
                 setItems(history);
             } else {
-                const items = await NeonClient.getItems(selectedCategory || null);
+                const items = await NeonClient.getItems(selectedCategory || null, page, ITEMS_PER_PAGE);
                 setItems(items);
+                setTotalItems(items.length); // For simplicity, in real app you'd get total count
             }
         } catch (err) {
             console.error("Fetch items error:", err);
@@ -148,8 +152,8 @@ export default function App() {
     };
 
     useEffect(() => {
-        fetchItems();
-    }, [selectedCategory]);
+        fetchItems(currentPage);
+    }, [selectedCategory, currentPage]);
 
     // Log category change
     useEffect(() => {
@@ -781,6 +785,29 @@ return (
                         />
                     ))
                 )}
+            </div>
+        )}
+
+        {/* Pagination Controls */}
+        {selectedCategory !== 'Historia' && selectedCategory !== 'Ustawienia' && items.length > 0 && (
+            <div className="pagination-controls flex justify-center items-center gap-2 mt-6">
+                <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="btn btn-sm btn-ghost"
+                >
+                    ← Poprzednia
+                </button>
+                <span className="text-white px-4">
+                    Strona {currentPage}
+                </span>
+                <button
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={items.length < ITEMS_PER_PAGE}
+                    className="btn btn-sm btn-ghost"
+                >
+                    Następna →
+                </button>
             </div>
         )}
 
