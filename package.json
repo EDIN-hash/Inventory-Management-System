@@ -10,7 +10,9 @@
     "perf": "vite build && vite preview --port 4173 & sleep 3 && node perf-test.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "install-functions": "cd netlify/functions/neon-proxy && npm install",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "npm run build && wrangler dev"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -19,6 +21,7 @@
     "react-modal": "^3.16.3"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.33.2",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.1.1",
@@ -30,6 +33,7 @@
     "typescript": "^5.4.0",
     "vite": "^7.2.6",
     "vite-plugin-css-injected-by-js": "^2.1.1",
-    "vite-plugin-html": "^3.2.2"
+    "vite-plugin-html": "^3.2.2",
+    "wrangler": "^4.85.0"
   }
 }

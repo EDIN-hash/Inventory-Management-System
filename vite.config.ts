@@ -5,6 +5,8 @@ import { createHtmlPlugin } from 'vite-plugin-html';
 import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js';
 import { readFileSync } from 'fs';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // Generate a random nonce for CSP
 const generateNonce = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -21,19 +23,15 @@ const nonce = generateNonce();
 const criticalCSS = readFileSync(resolve(__dirname, 'src/critical.css'), 'utf-8');
 
 export default defineConfig({
-    plugins: [
-        react(),
-        cssInjectedByJsPlugin(),
-        createHtmlPlugin({
-            minify: true,
-            inject: {
-                data: {
-                    nonce: nonce,
-                    criticalCSS: criticalCSS
-                }
+    plugins: [react(), cssInjectedByJsPlugin(), createHtmlPlugin({
+        minify: true,
+        inject: {
+            data: {
+                nonce: nonce,
+                criticalCSS: criticalCSS
             }
-        })
-    ],
+        }
+    }), cloudflare()],
     root: resolve(__dirname, "."),
     build: {
         outDir: "dist",
