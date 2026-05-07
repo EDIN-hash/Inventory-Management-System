@@ -1,3 +1,13 @@
+// Debug logging
+const DEBUG_MODE = import.meta.env.DEV;
+
+export function debugLog(level, message, data = null) {
+    if (DEBUG_MODE) {
+        const timestamp = new Date().toISOString();
+        console.log(`[${level}] ${timestamp}: ${message}`, data || '');
+    }
+}
+
 // Utility functions for device identification and tracking
 
 const DEVICE_ID_KEY = 'inventory_device_id';
@@ -17,27 +27,22 @@ export interface ImageOptimizeOptions {
  */
 function generateFingerprint(): string {
     try {
-        const data = {
-            platform: navigator.platform,
-            hardwareConcurrency: navigator.hardwareConcurrency,
-            deviceMemory: navigator.deviceMemory,
-            language: navigator.language,
-            screenWidth: window.screen.width,
-            screenHeight: window.screen.height,
-            colorDepth: window.screen.colorDepth,
-        };
+        const nav = window.navigator;
+        const screen = window.screen;
         
-        const str = JSON.stringify(data);
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
+        const data = [
+            nav.userAgent,
+            nav.language,
+            screen.colorDepth,
+            `${screen.width}x${screen.height}`,
+            nav.hardwareConcurrency || 'unknown',
+            new Date().getTimezoneOffset()
+        ].join('|');
         
-        return `DEV-${Math.abs(hash).toString(36).substring(0, 8).toUpperCase()}`;
+        // Use base64 encoding for the data
+        return 'DEV-' + btoa(data).substring(0, 24).replace(/[^A-Z0-9]/g, '').toUpperCase();
     } catch {
-        return 'DEV-UNKNOWN';
+        return 'DEV-' + Date.now().toString(36).toUpperCase();
     }
 }
 

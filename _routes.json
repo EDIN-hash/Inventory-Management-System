@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "Cloudflare Pages Functions for Inventory PWA",
+  "routes": [
+    { "pattern": "/api/*", "zone_name": "your-domain.com" }
+  ],
+  "exclude": [],
+  "include": ["/*"]
+}

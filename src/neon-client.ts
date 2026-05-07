@@ -52,6 +52,34 @@ export interface UserDevice {
     device_id: string;
 }
 
+// Debug logging utility for frontend
+const DEBUG_MODE = import.meta.env.DEV;
+
+export function debugLog(level, message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+        timestamp,
+        level,
+        message,
+        ...(data && { data })
+    };
+    
+    if (DEBUG_MODE) {
+        const colors = {
+            DEBUG: 'color: cyan',
+            INFO: 'color: green',
+            WARN: 'color: orange',
+            ERROR: 'color: red'
+        };
+        console.log(`%c[${level}] ${message}`, colors[level] || 'color: white', data || '');
+    }
+    
+    // Always log errors
+    if (level === 'ERROR') {
+        console.error(logEntry);
+    }
+}
+
 const TOKEN_KEY = 'inventory_auth_token';
 const USER_KEY = 'inventory_user';
 
@@ -261,14 +289,31 @@ const NeonClient = {
         return getUser();
     },
 
-    // Get all items
-    async getItems(category: string | null = null): Promise<Item[]> {
+    // Get all items with pagination
+    async getItems(category: string | null = null, page = 1, limit = 50): Promise<Item[]> {
+        const offset = (page - 1) * limit;
+        
         let query = 'SELECT * FROM items';
+        const params: unknown[] = [];
+        
         if (category) {
             query += ' WHERE category = $1';
-            return neonQuery<Item>(query, [category]);
+            if (limit) {
+                query += ' LIMIT $2 OFFSET $3';
+                params.push(category, limit, offset);
+            } else {
+                params.push(category);
+            }
+        } else {
+            if (limit) {
+                query += ' LIMIT $2 OFFSET $3';
+                params.push(limit, offset);
+            }
         }
-        return neonQuery<Item>(query);
+        
+        debugLog('DEBUG', 'Fetching items', { category, page, limit, offset });
+        
+        return neonQuery<Item>(query, params);
     },
 
     // Add item
